@@ -1,0 +1,401 @@
+#!/bin/bash
+#PROVA#FP
+
+
+#####################
+# VARIABILI GLOBALI #
+#####################
+# 
+# COLORI:
+#########
+COLOR_WHITE=" -e \E[1;37m"
+COLOR_GRAY_LIGHT=" -e \E[0;37m"
+COLOR_GRAY_DARK=" -e \E[1;30m"
+COLOR_BLUE=" -e \E[0;34m"
+COLOR_BLUE_LIGHT=" -e \E[1;34m"
+COLOR_GREEN=" -e \E[0;32m"
+COLOR_GREEN_LIGHT=" -e \E[1;32m"
+COLOR_CYAN=" -e \E[0;36m"
+COLOR_CYAN_LIGHT=" -e \E[1;36m"
+COLOR_RED=" -e \E[0;31m"
+COLOR_RED_LIGHT=" -e \E[1;31m"
+COLOR_PURPLE=" -e \E[0;35m"
+COLOR_PURPLE_LIGHT=" -e \E[1;35m"
+COLOR_BROWN=" -e \E[0;33m"
+COLOR_YELLOW=" -e \E[1;33m"
+COLOR_BLACK=" -e \E[0;30m"
+REPLACE=" -e \E[0m"
+
+####################
+# FUNZIONI GLOBALI #
+####################
+#
+# LEGGI RISPOSTA:
+# Questa funzione valuta la riposta dell'utente e ritorna y = yes, n = no, f = n/d
+##################################################################################
+function read_risp()
+{
+	read RISPOSTA
+	case "$RISPOSTA" in
+		""|YES|yes|Yes|y|Y)
+			echo "y"
+			;;
+		NO|no|No|n|N)
+			echo "n"
+			;;
+		*)
+			echo "f"
+			;;
+	esac
+}
+
+partition()
+{
+	parn=${path:8:2}
+	echo $((parn - 1))
+}
+
+device()
+{
+	hdn=${path:7:1}
+	
+	if [[ $hdn = "a" ]]
+	then 
+		echo "0"
+	elif [[ $hdn = "b" ]]
+	then 
+		echo "1"
+	elif [[ $hdn = "c" ]]
+	then 
+		echo "2"
+	elif [[ $hdn = "d" ]]
+	then
+		echo "3"
+	fi
+}
+
+function check_device()
+{
+	node2=${partizione:8:2}       #numero della partizione
+	if [[ $node2 -gt "7" ]]
+	then
+		node1=${partizione:7:1}       #device dell'hd
+		if [[ $node1 = "a" ]]
+		then
+               		node=$node2
+      		elif [[ $node1 = "b" ]]
+      		then
+         		node=$(( $node2 + 64 ))
+      		fi
+		#comando per la creazione del dispositivo
+		mknod -m 660 $partizione b 3 $node
+		chown root:disk $partizione 
+		echo "mknod -m 660 $partizione b 3 $node"
+		echo "chown root:disk $partizione" 
+	fi
+}
+
+function scelta()
+{
+	read SCELTA
+	case "$SCELTA" in
+	       1)
+	          echo "1"
+		  ;;
+	       2)
+	       	  echo "2"
+		  ;;
+	       3)
+	          echo "3"
+		  ;;
+	       "")
+	       	  echo "1"
+		  ;;
+		*)
+		  echo "5"
+		  ;;
+	esac
+}
+
+function fs_ext2()
+{
+	echo -e $ME
+	if  mkfs.ext2 -q $hdax                      # !!
+        then
+               	return $EXIT_SUCCESS
+	else
+		return $EXIT_FAILURE
+	fi
+        return 0
+}
+
+function fs_ext3()
+{
+	echo -e $ME3
+	if mke2fs -j $hdax                      # !!!
+	then
+		return $EXIT_SUCCESS
+        else
+		return $EXIT_FAILURE
+        fi
+        return 0
+}
+
+function fs_reiserfs()
+{
+	if mkreiserfs -q $hdax                  # !!!
+        then
+		return $EXIT_SUCCESS
+        else
+	       return $EXIT_FAILURE
+	fi
+	return 0
+}
+
+function deb()
+{
+	echo $M1T
+}
+
+#La funzione accetta 2 triplette del tipo [0-9].[0-9].[0-9]
+#le eventuali ottimazzioni vanno eseguite al di fuori della funzione
+function check_triple()
+{
+        tri=$(echo `expr match "$1" '\([0-9].[0-9]*\)'` | sed -e 's/\.//g')
+        min=$(echo `expr match "$2" '\([0-9].[0-9]*\)'` | sed -e 's/\.//g')
+
+        if [ "$tri" -gt "$min" ] ; then
+                return  1
+        elif [ "$tri" -lt "$min" ]; then
+                return  0
+        else
+            lasttri=$(echo "$1" | awk 'BEGIN{FS="."}{print $3}')
+            lastmin=$(echo "$2" | awk 'BEGIN{FS="."}{print $3}')
+
+            if [ "$lasttri" -ge "$lastmin" ]; then
+                return 1
+            else
+                return  0
+            fi
+        fi
+}
+function hmp() ### How Many Partiotions ?
+{
+	echo -e $(echo $COLOR_PURPLE)$una $(echo $REPLACE)
+	read m
+	case $m in
+			""|1)
+			#echo -e $(echo $COLOR_PURPLE)$instT2bis "LFS /" $(echo $REPLACE)
+#			echo -e $(echo $COLOR_PURPLE)$instT2bis "LFS /"
+			f="/";
+			chmp;
+			if [ $x -eq 0 ]
+			then
+				echo -e $(echo $COLOR_PURPLE)$instT2bis "LFS$f"
+			        read hdax1
+				part=1;
+			else
+				echo "ERROR";
+				hmp;
+			fi
+                        ;;
+                        2) echo -e $(echo $COLOR_BLUE_LIGHT)$pch " [/] : "
+                                read f;
+                                echo $pch "[/usr] :"
+                                read s;
+                                chmp;
+                                if [ $x -eq 0 ]
+                                then
+                                        echo -e $(echo $COLOR_PURPLE)$instT2bis "LFS$f"
+                                        read hdax1
+                                        echo -e $instT2bis "LFS$s"
+                                        read hdax2
+                                        echo -e $(echo $REPLACE)
+                                        part=2;
+                                else
+					 echo "ERROR";
+                                        hmp;
+                                fi
+                                ;;
+                        3) echo -e $(echo $COLOR_BLUE_LIGHT)$pch " [/] : "
+                                read f;
+                                echo $pch "[/home] :"
+                                read s;
+                                echo $pch "[/usr] :"
+                                read t
+                                chmp;
+                                if [ $x -eq 0 ]
+                                then
+                                        echo -e $(echo $COLOR_PURPLE)$instT2bis "LFS $f"
+                                        read hdax1
+                                        echo -e "$instT2bis LFS $s";
+                                        read hdax2
+                                        echo -e "$instT2bis LFS $t";
+                                        read hdax3
+                                        echo -e $(echo $REPLACE)
+                                        part=3;
+                                else
+					echo "ERROR";
+                                        hmp;
+                                fi
+                                ;;
+                        4) echo -e $(echo $COLOR_BLUE_LIGHT)$pch " [/] : "
+			   read f;
+			   echo $pch "[/home] :"
+			   read s;
+			   echo $pch "[/usr] :"
+			   read t
+			   echo $pch "[/usr/local] :"
+			   read q
+			   chmp;
+			   if [ $x -eq 0 ]
+			   then
+				   echo -e $(echo $COLOR_PURPLE)$instT2bis "LFS$f"
+				   read hdax1
+				   echo -e "$instT2bis LFS$s";
+				   read hdax2
+				   echo -e "$instT2bis LFS$t";
+				   read hdax3
+				   echo -e "$instT2bis LFS$q";
+				   read hdax4
+				   echo -e $(echo $REPLACE)
+				   part=4;
+			   else
+				   echo "ERROR";
+				   hmp;
+			   fi
+			   ;;
+                        *) echo -e $opz
+                                hmp;;
+	esac
+}
+function chmp() ### check partition
+{
+        ### la prima [f] deve essere /
+        case $m in
+		1) if [ -z "$f" -o "$f" != "/" ]
+		then
+			f="/";
+		fi
+		ckf=`echo $f | grep /`
+		if [ -z "$ckf" ]
+		then
+			echo "partition not valid!"
+			x=-1;
+		else
+			x=0;
+		fi
+		;;
+                2)
+                if [ -z "$f" ]
+                then 
+                        f="/";
+                fi
+                if [ -z "$s" ]
+                then 
+                        s="/usr";
+                fi
+                ckf=`echo $f | grep /`
+                cks=`echo $s | grep /`
+                if [ -z "$ckf" -o "$ckf" != "/" -o -z "$cks" ]
+                then 
+                        echo "partition not valid!"
+                        x=-1;
+                else
+                        x=0;
+                fi
+                        ;;
+                3)
+                if [ -z "$f" ]
+                then
+                        f="/";
+                fi
+                if [ -z "$s" ]
+                then
+                        s="/home";
+                fi
+                if [ -z "$t" ]
+                then
+                        t="/usr";
+                fi
+                ckf=`echo $f | grep /`
+                cks=`echo $s | grep /`
+                ckt=`echo $t | grep /`
+                if [ -z "$ckf" -o "$ckf" != "/" -o -z "$cks" -o -z "$ckt" ]
+                then
+                        x=-1;
+		fi
+                        x=0;
+                        ;;
+		4) 
+		if [ -z "$f" ]
+		then
+			f="/";
+		fi
+		if [ -z "$s" ]
+		then
+			s="/home";
+		fi
+		if [ -z "$t" ]
+		then
+			t="/usr";
+		fi
+		if [ -z "$q" ]
+		then
+			q="/usr/local";
+		fi
+		ckf=`echo $f | grep /`
+		cks=`echo $s | grep /`
+		ckt=`echo $t | grep /`
+		ckq=`echo $q | grep /`				
+		if [ -z "$ckf" -o "$ckf" != "/" -o -z "$cks" -o -z "$ckt" -o -z "$ckq" ]
+		then
+			x=-1;
+		fi
+		x=0;
+		;;	
+        esac
+}
+function verifyhd()
+{
+        ##### num tot part
+        case $part in
+                1)
+                if [[ -b $hdax1 && $hdax1 != "" ]]
+                then
+                        x=0;
+                else
+                        x=$E_HDP;
+                fi
+                ;;
+                2)
+                if [[ -b $hdax1 && $hdax1 != "" && -b $hdax2 && $hdax2 != "" ]]
+                then
+                        x=0;
+                else
+                        x=$E_HDP;
+                fi
+                ;;
+                3)
+                if [[ -b $hdax1 && $hdax1 != "" && -b $hdax2 && $hdax2 != "" && -b $hdax3 && $hdax3 != "" ]]
+                then
+                        x=0;
+                else
+                        x=$E_HDP;
+                fi
+                ;;
+        esac
+}
+function optmization()
+{
+	if [[ "$optimize" == "true" ]]
+	then
+		echo "ok optimize";
+		source setflag.sh
+		echo $CFLAGS
+		sleep 2;
+	else
+		echo "no optx";
+		sleep 2;
+	fi
+}

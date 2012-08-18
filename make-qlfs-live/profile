@@ -1,0 +1,12 @@
+# Begin /etc/profile
+export PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin/X11"
+export LC_ALL=en_GB
+export LANG=en_GB
+export INPUTRC=/etc/inputrc
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/X11R6/lib/pkgconfig"
+export PANGO_RC_FILE="/etc/pango/pangorc"
+alias ls="ls --color=auto"
+alias ll="ls -l"
+alias l="ls -la"
+PS1="\[\033[0;32m\]\u\[\033[1;37m\]into\[\033[0;31m\]\h\[\033[0;35m\] [\w]#\[\033[0m\] "
+# End /etc/profile

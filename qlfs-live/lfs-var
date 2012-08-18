@@ -1,0 +1,40 @@
+#!/bin/bash
+#****************************************************************************
+#               QLFS-60alpha http://lfs-italia.homelinux.org                #
+#                                                                           #
+#      Copyright (C) 2005 Matteo Mattei   matteo.mattei@gmail.com           #
+#                         Marco Sciatta   marco.sciatta@gmail.com           #
+#                                                                           #
+# This program is free software; you can redistribute it and/or modify      #
+# it under the terms of the GNU General Public License as published by      #
+# the Free Software Foundation; either version 2 of the License, or         #
+# (at your option) any later version.                                       #
+#                                                                           #
+# This program is distributed in the hope that it will be useful,           #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+# GNU General Public License for more details.                              #
+#                                                                           #
+# You should have received a copy of the GNU General Public License         #
+# along with this program; if not, write to the Free Software               #
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA #
+#                                                                           #
+#****************************************************************************
+
+export LFS=/lfs/host
+wopt="--progress=dot:mega "  #stampa a video dei puntini durante il download
+gccsed="no"
+myecho="echo -e"
+mirror="http://www.lfs-italia.org/file/"
+ROOT_UID=0				#controllo dell'utente root
+E_MD5SUM=2				#codice di exit del controllo md5
+E_NONROOT=69				#codice di exit di non-root
+EXIT_SUCCESS=0				#codice di ritorno se tutto e' andato a buon fine
+EXIT_COMPILE=1				#codice di exit nella compilazione nel caso di errore
+NOT_INSTALL=2				#codice di exit quando non si ha il programma 'install'
+wopt="--progress=dot:mega" 		#stampa a video dei puntini durante il download
+COMMENT='#'
+############################################
+#### VARIABILI settate in runtime ##########
+############################################
+

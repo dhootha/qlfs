@@ -1,0 +1,24 @@
+#!/bin/bash
+
+export LFS=/mnt/lfs
+VERSION="6.1"
+wopt="--progress=dot:mega "  #stampa a video dei puntini durante il download
+gccsed="no"
+myecho="echo -e"
+mirror="http://www.lfs-italia.org/file/"
+ROOT_UID=0				#controllo dell'utente root
+E_MD5SUM=2				#codice di exit del controllo md5
+E_NONROOT=69				#codice di exit di non-root
+E_KERNEL=79
+E_GCC=80
+EXIT_SUCCESS=0				#codice di ritorno se tutto e' andato a buon fine
+EXIT_COMPILE=1				#codice di exit nella compilazione nel caso di errore
+NOT_INSTALL=2				#codice di exit quando non si ha il programma 'install'
+wopt="--progress=dot:mega" 		#stampa a video dei puntini durante il download
+COMMENT='#'
+KMIN="2.6.2"				#kernel minimo per questa versione
+GMIN="3.0.0"				#gcc con quale e' stato compilato il kernel minimo
+############################################
+#### VARIABILI settate in runtime ##########
+############################################
+

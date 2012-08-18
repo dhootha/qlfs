@@ -1,0 +1,2182 @@
+#!/bin/bash
+
+#    Qlfs-upgrade Script to upgrade qlfs (Quick-LFS).
+#    Copyright (C) 2007  Urbinati Simone <u.simone@gmail.com>
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License version 2 as
+#    published by the Free Software Foundation.
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+
+#DEBUG
+echo "Check: $check_control"
+echo "Stripping: $execute_stripping"
+echo "Partition lfs: $hdax"
+sleep 3
+#END DEBUG
+
+
+
+################################
+##         INIZIO CAPITOLO 5   #
+################################
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.3. Binutils-2.17 - Pass 1"
+# Nome funzione: F503_binutils_pass1
+# -----------------------------------------------------------------------------
+function F503_binutils_pass1()
+{
+	echo "503_binutils_pass1" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.3. Binutils-2.17 - Pass 1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj binutils-2.17.tar.bz2 && \
+	cd binutils-2.17 && \
+	time {
+	  mkdir -v ../binutils-build && \
+	  cd ../binutils-build && \
+	  CC="gcc -B/usr/bin/" ../binutils-2.17/configure \
+	      --prefix=/tools --disable-nls --disable-werror && \
+	  make && \
+	  make install && \
+	  make -C ld clean && \
+	  make -C ld LIB_PATH=/tools/lib && \
+	  cp -v ld/ld-new /tools/bin && \
+	echo "503_binutils_pass1" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.4. GCC-4.1.2 - Pass 1"
+# Nome funzione: F504_gcc_pass1
+# -----------------------------------------------------------------------------
+function F504_gcc_pass1()
+{
+	echo "504_gcc_pass1" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.4. GCC-4.1.2 - Pass 1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gcc-4.1.2.tar.bz2 && \
+	cd gcc-4.1.2 && \
+	time {
+	  mkdir -v ../gcc-build && \
+	  cd ../gcc-build && \
+	  CC="gcc -B/usr/bin/" ../gcc-4.1.2/configure --prefix=/tools \
+	      --with-local-prefix=/tools --disable-nls --enable-shared \
+	      --enable-languages=c && \
+	  make bootstrap && \
+	  make install && \
+	  ln -vs gcc /tools/bin/cc && \
+	echo "504_gcc_pass1" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.5. Linux-2.6.22.5 API Headers"
+# Nome funzione: F505_linux_headers
+# -----------------------------------------------------------------------------
+function F505_linux_headers()
+{
+	echo "505_linux_headers" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.5. Linux-2.6.22.5 API Headers"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj linux-2.6.22.5.tar.bz2 && \
+	cd linux-2.6.22.5 && \
+	time {
+	  make mrproper && \
+	  make headers_check && \
+	  make INSTALL_HDR_PATH=dest headers_install && \
+	  cp -rv dest/include/* /tools/include && \
+	echo "505_linux_headers" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.6. Glibc-2.5.1"
+# Nome funzione: F506_glibc
+# -----------------------------------------------------------------------------
+function F506_glibc()
+{
+	echo "506_glibc" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.6. Glibc-2.5.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj glibc-2.5.1.tar.bz2 && \
+	cd glibc-2.5.1 && \
+	time {
+	  mkdir -v ../glibc-build && \
+	  cd ../glibc-build && \
+	  ../glibc-2.5.1/configure --prefix=/tools \
+	      --disable-profile --enable-add-ons \
+	      --enable-kernel=2.6.0 --with-binutils=/tools/bin \
+	      --without-gd --with-headers=/tools/include \
+	      --without-selinux && \
+	  make && \
+	  make check && \
+	  mkdir -v /tools/etc && \
+	  touch /tools/etc/ld.so.conf && \
+	  make install && \
+	echo "506_glibc" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.7. Adjusting the Toolchain"
+# Nome funzione: F507_adjusting
+# -----------------------------------------------------------------------------
+function F507_adjusting()
+{
+	echo "507_adjusting" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.7. Adjusting the Toolchain"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj adjusting.tar.bz2 && \
+	cd adjusting && \
+	time {
+	  mv -v /tools/bin/{ld,ld-old} && \
+	  mv -v /tools/$(gcc -dumpmachine)/bin/{ld,ld-old} && \
+	  mv -v /tools/bin/{ld-new,ld} && \
+	  ln -sv /tools/bin/ld /tools/$(gcc -dumpmachine)/bin/ld && \
+	  gcc -dumpspecs | sed 's@^/lib/ld-linux.so.2@/tools&@g' \
+	    > `dirname $(gcc -print-libgcc-file-name)`/specs && \
+	  GCC_INCLUDEDIR=`dirname $(gcc -print-libgcc-file-name)`/include && \
+	  find ${GCC_INCLUDEDIR}/* -maxdepth 0 -xtype d -exec rm -rvf '{}' \; && \
+	  rm -vf `grep -l "DO NOT EDIT THIS FILE" ${GCC_INCLUDEDIR}/*` && \
+	  unset GCC_INCLUDEDIR && \
+	  echo 'main(){}' > dummy.c && \
+	  cc dummy.c && \
+	  readelf -l a.out | grep ': /tools' && \
+	  #RIVEDERE
+	  #[Requesting program interpreter:
+    	  #/tools/lib/ld-linux.so.2]
+	  rm -v dummy.c a.out && \
+	echo "507_adjusting" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.8. Tcl-8.4.15"
+# Nome funzione: F508_tcl
+# -----------------------------------------------------------------------------
+function F508_tcl()
+{
+	echo "508_tcl" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.8. Tcl-8.4.15"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf tcl8.4.15-src.tar.gz && \
+	cd tcl8.4.15 && \
+	time {
+	  cd unix && \
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	  make install-private-headers && \
+	  ln -sv tclsh8.4 /tools/bin/tclsh && \
+	echo "508_tcl" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.9. Expect-5.43.0"
+# Nome funzione: F509_expect
+# -----------------------------------------------------------------------------
+function F509_expect()
+{
+	echo "509_expect" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.9. Expect-5.43.0"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf expect-5.43.0.tar.gz && \
+	cd expect-5.43.0 && \
+	time {
+	  patch -Np1 -i ../expect-5.43.0-spawn-1.patch && \
+	  cp configure{,.bak} && \
+	  sed 's:/usr/local/bin:/bin:' configure.bak > configure && \
+	  ./configure --prefix=/tools --with-tcl=/tools/lib \
+	    --with-tclinclude=/tools/include --with-x=no && \
+	  make && \
+	  make SCRIPTS="" install && \
+	echo "509_expect" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.10. DejaGNU-1.4.4"
+# Nome funzione: F510_dejagnu
+# -----------------------------------------------------------------------------
+function F510_dejagnu()
+{
+	echo "510_dejagnu" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.10. DejaGNU-1.4.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf dejagnu-1.4.4.tar.gz && \
+	cd dejagnu-1.4.4 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make install && \
+	echo "510_dejagnu" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.11. GCC-4.1.2 - Pass 2"
+# Nome funzione: F511_gcc_pass2
+# -----------------------------------------------------------------------------
+function F511_gcc_pass2()
+{
+	echo "511_gcc_pass2" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.11. GCC-4.1.2 - Pass 2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gcc-4.1.2.tar.bz2 && \
+	cd gcc-4.1.2 && \
+	time {
+	  expect -c "spawn ls" && \
+	  cp -v gcc/Makefile.in{,.orig} && \
+	  sed 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig > gcc/Makefile.in && \
+	  cp -v gcc/Makefile.in{,.tmp} && \
+	  sed 's/^XCFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
+	    > gcc/Makefile.in && \
+	  patch -Np1 -i ../gcc-4.1.2-specs-1.patch && \
+	  mkdir -v ../gcc-build && \
+	  cd ../gcc-build && \
+	  ../gcc-4.1.2/configure --prefix=/tools \
+	      --with-local-prefix=/tools --enable-clocale=gnu \
+	      --enable-shared --enable-threads=posix \
+	      --enable-__cxa_atexit --enable-languages=c,c++ \
+	      --disable-libstdcxx-pch && \
+	  make && \
+	  make -k check && \
+	  make install && \
+	  echo 'main(){}' > dummy.c && \
+	  cc dummy.c && \
+	  readelf -l a.out | grep ': /tools' && \
+	  #RIVEDERE 
+	  #[Requesting program interpreter:
+    	  #/tools/lib/ld-linux.so.2]
+	  rm -v dummy.c a.out && \
+	echo "511_gcc_pass2" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.12. Binutils-2.17 - Pass 2"
+# Nome funzione: F512_binutils_pass2
+# -----------------------------------------------------------------------------
+function F512_binutils_pass2()
+{
+	echo "512_binutils_pass2" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.12. Binutils-2.17 - Pass 2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj binutils-2.17.tar.bz2 && \
+	cd binutils-2.17 && \
+	time {
+	  mkdir -v ../binutils-build && \
+	  cd ../binutils-build && \
+	  ../binutils-2.17/configure --prefix=/tools \
+	      --disable-nls --with-lib-path=/tools/lib && \
+	  make && \
+	  make check && \
+	  make install && \
+	  make -C ld clean && \
+	  make -C ld LIB_PATH=/usr/lib:/lib && \
+	  cp -v ld/ld-new /tools/bin && \
+	echo "512_binutils_pass2" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.13. Ncurses-5.6"
+# Nome funzione: F513_ncurses
+# -----------------------------------------------------------------------------
+function F513_ncurses()
+{
+	echo "513_ncurses" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.13. Ncurses-5.6"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf ncurses-5.6.tar.gz && \
+	cd ncurses-5.6 && \
+	time {
+	  ./configure --prefix=/tools --with-shared \
+	      --without-debug --without-ada --enable-overwrite && \
+	  make && \
+	  make install && \
+	echo "513_ncurses" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.14. Bash-3.2"
+# Nome funzione: F514_bash
+# -----------------------------------------------------------------------------
+function F514_bash()
+{
+	echo "514_bash" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.14. Bash-3.2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf bash-3.2.tar.gz && \
+	cd bash-3.2 && \
+	time {
+	  patch -Np1 -i ../bash-3.2-fixes-5.patch && \
+	  ./configure --prefix=/tools --without-bash-malloc && \
+	  make && \
+	  make install && \
+	  ln -vs bash /tools/bin/sh && \
+	echo "514_bash" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.15. Bzip2-1.0.4"
+# Nome funzione: F515_bzip2
+# -----------------------------------------------------------------------------
+function F515_bzip2()
+{
+	echo "515_bzip2" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.15. Bzip2-1.0.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf bzip2-1.0.4.tar.gz && \
+	cd bzip2-1.0.4 && \
+	time {
+	  make && \
+	  make PREFIX=/tools install && \
+	echo "515_bzip2" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.16. Coreutils-6.9"
+# Nome funzione: F516_coreutils
+# -----------------------------------------------------------------------------
+function F516_coreutils()
+{
+	echo "516_coreutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.16. Coreutils-6.9"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj coreutils-6.9.tar.bz2 && \
+	cd coreutils-6.9 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	  cp -v src/su /tools/bin/su-tools && \
+	echo "516_coreutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.17. Diffutils-2.8.1"
+# Nome funzione: F517_diffutils
+# -----------------------------------------------------------------------------
+function F517_diffutils()
+{
+	echo "517_diffutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.17. Diffutils-2.8.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf diffutils-2.8.1.tar.gz && \
+	cd diffutils-2.8.1 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "517_diffutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.18. Findutils-4.2.31"
+# Nome funzione: F518_findutils
+# -----------------------------------------------------------------------------
+function F518_findutils()
+{
+	echo "518_findutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.18. Findutils-4.2.31"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj findutils-4.2.31.tar.bz2 && \
+	cd findutils-4.2.31 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "518_findutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.19. Gawk-3.1.5"
+# Nome funzione: F519_gawk
+# -----------------------------------------------------------------------------
+function F519_gawk()
+{
+	echo "519_gawk" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.19. Gawk-3.1.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gawk-3.1.5.tar.bz2 && \
+	cd gawk-3.1.5 && \
+	time {
+	  ./configure --prefix=/tools && \
+cat >> config.h << "EOF"
+#define HAVE_LANGINFO_CODESET 1
+#define HAVE_LC_MESSAGES 1
+EOF
+	  make && \
+	  make install && \
+	echo "519_gawk" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.20. Gettext-0.16.1"
+# Nome funzione: F520_gettext
+# -----------------------------------------------------------------------------
+function F520_gettext()
+{
+	echo "520_gettext" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.20. Gettext-0.16.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gettext-0.16.1.tar.bz2 && \
+	cd gettext-0.16.1 && \
+	time {
+	  cd gettext-tools && \
+	  ./configure --prefix=/tools --disable-shared && \
+	  make -C gnulib-lib && \
+	  make -C src msgfmt && \
+	  cp -v src/msgfmt /tools/bin && \
+	echo "520_gettext" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.21. Grep-2.5.1a"
+# Nome funzione: F521_grep
+# -----------------------------------------------------------------------------
+function F521_grep()
+{
+	echo "521_grep" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.21. Grep-2.5.1a"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj grep-2.5.1a.tar.bz2 && \
+	cd grep-2.5.1a && \
+	time {
+	  ./configure --prefix=/tools \
+	      --disable-perl-regexp && \
+	  make && \
+	  make install && \
+	echo "521_grep" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.22. Gzip-1.3.12"
+# Nome funzione: F522_gzip
+# -----------------------------------------------------------------------------
+function F522_gzip()
+{
+	echo "522_gzip" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.22. Gzip-1.3.12"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gzip-1.3.12.tar.bz2 && \
+	cd gzip-1.3.12 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "522_gzip" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.23. Make-3.81"
+# Nome funzione: F523_make
+# -----------------------------------------------------------------------------
+function F523_make()
+{
+	echo "523_make" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.23. Make-3.81"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj make-3.81.tar.bz2 && \
+	cd make-3.81 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "523_make" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.24. Patch-2.5.4"
+# Nome funzione: F524_patch
+# -----------------------------------------------------------------------------
+function F524_patch()
+{
+	echo "524_patch" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.24. Patch-2.5.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf patch-2.5.4.tar.gz && \
+	cd patch-2.5.4 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "524_patch" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.25. Perl-5.8.8"
+# Nome funzione: F525_perl
+# -----------------------------------------------------------------------------
+function F525_perl()
+{
+	echo "525_perl" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.25. Perl-5.8.8"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj perl-5.8.8.tar.bz2 && \
+	cd perl-5.8.8 && \
+	time {
+	  patch -Np1 -i ../perl-5.8.8-libc-2.patch && \
+	  ./configure.gnu --prefix=/tools -Dstatic_ext='Data/Dumper Fcntl IO POSIX' && \
+	  make perl utilities && \
+	  cp -v perl pod/pod2man /tools/bin && \
+	  mkdir -pv /tools/lib/perl5/5.8.8 && \
+	  cp -Rv lib/* /tools/lib/perl5/5.8.8 && \
+	echo "525_perl" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.26. Sed-4.1.5"
+# Nome funzione: F526_sed
+# -----------------------------------------------------------------------------
+function F526_sed()
+{
+	echo "526_sed" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.26. Sed-4.1.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf sed-4.1.5.tar.gz && \
+	cd sed-4.1.5 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "526_sed" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.27. Tar-1.18"
+# Nome funzione: F527_tar
+# -----------------------------------------------------------------------------
+function F527_tar()
+{
+	echo "527_tar" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.27. Tar-1.18"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj tar-1.18.tar.bz2 && \
+	cd tar-1.18 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "527_tar" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.28. Texinfo-4.9"
+# Nome funzione: F528_texinfo
+# -----------------------------------------------------------------------------
+function F528_texinfo()
+{
+	echo "528_texinfo" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.28. Texinfo-4.9"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj texinfo-4.9.tar.bz2 && \
+	cd texinfo-4.9 && \
+	time {
+	  ./configure --prefix=/tools && \
+	  make && \
+	  make install && \
+	echo "528_texinfo" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "5.29. Util-linux-2.12r"
+# Nome funzione: F529_util_linux
+# -----------------------------------------------------------------------------
+function F529_util_linux()
+{
+	echo "529_util_linux" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 5.29. Util-linux-2.12r"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj util-linux-2.12r.tar.bz2 && \
+	cd util-linux-2.12r && \
+	time {
+	  sed -i 's@/usr/include@/tools/include@g' configure && \
+	  ./configure && \
+	  make -C lib && \
+	  make -C mount mount umount && \
+	  make -C text-utils more && \
+	  cp -v mount/{,u}mount text-utils/more /tools/bin && \
+	echo "529_util_linux" >> /qlfs-debug
+	}
+}
+
+################################
+##         INIZIO CAPITOLO 6   #
+################################
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.8. Man-pages-2.63"
+# Nome funzione: F608_man_pages
+# -----------------------------------------------------------------------------
+function F608_man_pages()
+{
+	echo "608_man_pages" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.8. Man-pages-2.63"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj man-pages-2.63.tar.bz2 && \
+	cd man-pages-2.63 && \
+	time {
+	  make install && \
+	echo "608_man_pages" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.9. Glibc-2.5.1"
+# Nome funzione: F609_glibc
+# -----------------------------------------------------------------------------
+function F609_glibc()
+{
+	echo "609_glibc" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.9. Glibc-2.5.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf glibc-libidn-2.5.1.tar.gz && \
+	cd glibc-libidn-2.5.1 && \
+	time {
+	  #RIVEDERE
+	  mv glibc-libidn-2.5.1 libidn && \
+	  sed -i '/vi_VN.TCVN/d' localedata/SUPPORTED && \
+	  sed -i \
+	  's|libs -o|libs -L/usr/lib -Wl,-dynamic-linker=/lib/ld-linux.so.2 -o|' \
+	          scripts/test-installation.pl && \
+	  sed -i 's|@BASH@|/bin/bash|' elf/ldd.bash.in && \
+	  mkdir -v ../glibc-build && \
+	  cd ../glibc-build && \
+	  ../glibc-2.5.1/configure --prefix=/usr \
+	      --disable-profile --enable-add-ons \
+	      --enable-kernel=2.6.0 --libexecdir=/usr/lib/glibc && \
+	  make && \
+	  #RIVEDERE
+	  make -k check 2>&1 | tee glibc-check-log && \
+	  grep Error glibc-check-log && \
+	  touch /etc/ld.so.conf && \
+	  make install && \
+	  mkdir -pv /usr/lib/locale && \
+	  localedef -i de_DE -f ISO-8859-1 de_DE && \
+	  localedef -i de_DE@euro -f ISO-8859-15 de_DE@euro && \
+	  localedef -i en_HK -f ISO-8859-1 en_HK && \
+	  localedef -i en_PH -f ISO-8859-1 en_PH && \
+	  localedef -i en_US -f ISO-8859-1 en_US && \
+	  localedef -i en_US -f UTF-8 en_US.UTF-8 && \
+	  localedef -i es_MX -f ISO-8859-1 es_MX && \
+	  localedef -i fa_IR -f UTF-8 fa_IR && \
+	  localedef -i fr_FR -f ISO-8859-1 fr_FR && \
+	  localedef -i fr_FR@euro -f ISO-8859-15 fr_FR@euro && \
+	  localedef -i fr_FR -f UTF-8 fr_FR.UTF-8 && \
+	  localedef -i it_IT -f ISO-8859-1 it_IT && \
+	  localedef -i ja_JP -f EUC-JP ja_JP && \
+	  make localedata/install-locales && \
+#RIVEDERE
+cat > /etc/nsswitch.conf << "EOF"
+# Begin /etc/nsswitch.conf
+
+passwd: files
+group: files
+shadow: files
+
+hosts: files dns
+networks: files
+
+protocols: files
+services: files
+ethers: files
+rpc: files
+
+# End /etc/nsswitch.conf
+EOF
+	  tzselect && \
+	  #RIVEDERE
+	  cp -v --remove-destination /usr/share/zoneinfo/<xxx> \
+	      /etc/localtime && \
+cat > /etc/ld.so.conf << "EOF"
+# Begin /etc/ld.so.conf
+
+/usr/local/lib
+/opt/lib
+
+# End /etc/ld.so.conf
+EOF
+	echo "609_glibc" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.11. Binutils-2.17"
+# Nome funzione: F611_binutils
+# -----------------------------------------------------------------------------
+function F611_binutils()
+{
+	echo "611_binutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.11. Binutils-2.17"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj binutils-2.17.tar.bz2 && \
+	cd binutils-2.17 && \
+	time {
+	  expect -c "spawn ls" && \
+	  #RIVEDERE
+	  #The system has no more ptys.
+	  #Ask your system administrator to create more.
+	  mkdir -v ../binutils-build && \
+	  cd ../binutils-build && \
+	  ../binutils-2.17/configure --prefix=/usr \
+	      --enable-shared && \
+	  make tooldir=/usr && \
+	  make check && \
+	  make tooldir=/usr install && \
+	  cp -v ../binutils-2.17/include/libiberty.h /usr/include && \
+	echo "611_binutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.12. GCC-4.1.2"
+# Nome funzione: F612_gcc
+# -----------------------------------------------------------------------------
+function F612_gcc()
+{
+	echo "612_gcc" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.12. GCC-4.1.2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gcc-4.1.2.tar.bz2 && \
+	cd gcc-4.1.2 && \
+	time {
+	  sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in && \
+	  sed -i 's/^XCFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in && \
+	  sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in && \
+	  sed -i 's/@have_mktemp_command@/yes/' gcc/gccbug.in && \
+	  mkdir -v ../gcc-build && \
+	  cd ../gcc-build && \
+	  ../gcc-4.1.2/configure --prefix=/usr \
+	      --libexecdir=/usr/lib --enable-shared \
+	      --enable-threads=posix --enable-__cxa_atexit \
+	      --enable-clocale=gnu --enable-languages=c,c++ && \
+	  make && \
+	  make -k check && \
+	  ../gcc-4.1.2/contrib/test_summary && \
+	  make install && \
+	  ln -sv ../usr/bin/cpp /lib && \
+	  ln -sv gcc /usr/bin/cc && \
+	  echo 'main(){}' > dummy.c && \
+	  cc dummy.c -v -Wl,--verbose &> dummy.log && \
+	  readelf -l a.out | grep ': /lib' && \
+	  #RIVEDERE
+	  #[Requesting program interpreter: /lib/ld-linux.so.2]
+	  grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log && \
+	  #/usr/lib/gcc/i686-pc-linux-gnu/4.1.2/../../../crt1.o succeeded
+	  #/usr/lib/gcc/i686-pc-linux-gnu/4.1.2/../../../crti.o succeeded
+	  #/usr/lib/gcc/i686-pc-linux-gnu/4.1.2/../../../crtn.o succeeded
+	  grep -B3 '^ /usr/include' dummy.log && \
+	  ##include <...> search starts here:
+ 	  #/usr/local/include
+ 	  #/usr/lib/gcc/i686-pc-linux-gnu/4.1.2/include
+ 	  #/usr/include
+	  grep 'SEARCH.*/usr/lib' dummy.log |sed 's|; |\n|g' && \
+	  #SEARCH_DIR("/usr/i686-pc-linux-gnu/lib")
+	  #SEARCH_DIR("/usr/local/lib")
+	  #SEARCH_DIR("/lib")
+	  #SEARCH_DIR("/usr/lib");
+	  grep "/lib/libc.so.6 " dummy.log && \
+	  #attempt to open /lib/libc.so.6 succeeded
+	  grep found dummy.log && \
+	  #found ld-linux.so.2 at /lib/ld-linux.so.2
+	  rm -v dummy.c a.out dummy.log && \
+	echo "612_gcc" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.13. Berkeley DB-4.5.20"
+# Nome funzione: F613_db
+# -----------------------------------------------------------------------------
+function F613_db()
+{
+	echo "613_db" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.13. Berkeley DB-4.5.20"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf db-4.5.20.tar.gz && \
+	cd db-4.5.20 && \
+	time {
+	  patch -Np1 -i ../db-4.5.20-fixes-1.patch && \
+	  cd build_unix && \
+	  ../dist/configure --prefix=/usr --enable-compat185 --enable-cxx && \
+	  make && \
+	  make docdir=/usr/share/doc/db-4.5.20 install && \
+	  chown -Rv root:root /usr/share/doc/db-4.5.20 && \
+	echo "613_db" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.14. Sed-4.1.5"
+# Nome funzione: F614_sed
+# -----------------------------------------------------------------------------
+function F614_sed()
+{
+	echo "614_sed" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.14. Sed-4.1.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf sed-4.1.5.tar.gz && \
+	cd sed-4.1.5 && \
+	time {
+	  ./configure --prefix=/usr --bindir=/bin --enable-html && \
+	  make && \
+	  make install && \
+	echo "614_sed" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.15. E2fsprogs-1.40.2"
+# Nome funzione: F615_e2fsprogs
+# -----------------------------------------------------------------------------
+function F615_e2fsprogs()
+{
+	echo "615_e2fsprogs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.15. E2fsprogs-1.40.2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf e2fsprogs-1.40.2.tar.gz && \
+	cd e2fsprogs-1.40.2 && \
+	time {
+	  sed -i -e 's@/bin/rm@/tools&@' lib/blkid/test_probe.in && \
+	  mkdir -v build && \
+	  cd build && \
+	  ../configure --prefix=/usr --with-root-prefix="" \
+	      --enable-elf-shlibs && \
+	  make && \
+	  make install && \
+	  make install-libs && \
+	echo "615_e2fsprogs" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.16. Coreutils-6.9"
+# Nome funzione: F616_coreutils
+# -----------------------------------------------------------------------------
+function F616_coreutils()
+{
+	echo "616_coreutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.16. Coreutils-6.9"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj coreutils-6.9.tar.bz2 && \
+	cd coreutils-6.9 && \
+	time {
+	  patch -Np1 -i ../coreutils-6.9-uname-1.patch && \
+	  patch -Np1 -i ../coreutils-6.9-suppress_uptime_kill_su-1.patch && \
+	  patch -Np1 -i ../coreutils-6.9-i18n-1.patch && \
+	  chmod +x tests/sort/sort-mb-tests && \
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make NON_ROOT_USERNAME=nobody check-root && \
+	  echo "dummy:x:1000:nobody" >> /etc/group && \
+	  su-tools nobody -s /bin/bash -c "make RUN_EXPENSIVE_TESTS=yes check" && \
+	  sed -i '/dummy/d' /etc/group && \
+	  make install && \
+	  mv -v /usr/bin/{cat,chgrp,chmod,chown,cp,date,dd,df,echo} /bin && \
+	  mv -v /usr/bin/{false,hostname,ln,ls,mkdir,mknod,mv,pwd,readlink,rm} /bin && \
+	  mv -v /usr/bin/{rmdir,stty,sync,true,uname} /bin && \
+	  mv -v /usr/bin/chroot /usr/sbin && \
+	  mv -v /usr/bin/{head,sleep,nice} /bin && \
+	echo "616_coreutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.17. Iana-Etc-2.20"
+# Nome funzione: F617_iana_etc
+# -----------------------------------------------------------------------------
+function F617_iana_etc()
+{
+	echo "617_iana_etc" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.17. Iana-Etc-2.20"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj iana-etc-2.20.tar.bz2 && \
+	cd iana-etc-2.20 && \
+	time {
+	  make && \
+	  make install && \
+	echo "617_iana_etc" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.18. M4-1.4.10"
+# Nome funzione: F618_m4
+# -----------------------------------------------------------------------------
+function F618_m4()
+{
+	echo "618_m4" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.18. M4-1.4.10"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj m4-1.4.10.tar.bz2 && \
+	cd m4-1.4.10 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "618_m4" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.19. Bison-2.3"
+# Nome funzione: F619_bison
+# -----------------------------------------------------------------------------
+function F619_bison()
+{
+	echo "619_bison" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.19. Bison-2.3"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj bison-2.3.tar.bz2 && \
+	cd bison-2.3 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  echo '#define YYENABLE_NLS 1' >> config.h && \
+	  make && \
+	  make install && \
+	echo "619_bison" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.20. Ncurses-5.6"
+# Nome funzione: F620_ncurses
+# -----------------------------------------------------------------------------
+function F620_ncurses()
+{
+	echo "620_ncurses" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.20. Ncurses-5.6"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf ncurses-5.6.tar.gz && \
+	cd ncurses-5.6 && \
+	time {
+	  patch -Np1 -i ../ncurses-5.6-coverity_fixes-1.patch && \
+	  ./configure --prefix=/usr --with-shared --without-debug --enable-widec && \
+	  make && \
+	  make install && \
+	  chmod -v 644 /usr/lib/libncurses++w.a && \
+	  mv -v /usr/lib/libncursesw.so.5* /lib && \
+	  ln -sfv ../../lib/libncursesw.so.5 /usr/lib/libncursesw.so && \
+	  for lib in curses ncurses form panel menu ; do \
+	      rm -vf /usr/lib/lib${lib}.so ; \
+	      echo "INPUT(-l${lib}w)" >/usr/lib/lib${lib}.so ; \
+	      ln -sfv lib${lib}w.a /usr/lib/lib${lib}.a ; \
+	  done
+	  ln -sfv libncurses++w.a /usr/lib/libncurses++.a && \
+	  rm -vf /usr/lib/libcursesw.so && \
+	  echo "INPUT(-lncursesw)" >/usr/lib/libcursesw.so && \
+	  ln -sfv libncurses.so /usr/lib/libcurses.so && \
+	  ln -sfv libncursesw.a /usr/lib/libcursesw.a && \
+	  ln -sfv libncurses.a /usr/lib/libcurses.a && \
+	  #don't create non-wide-character
+	  #make distclean && \
+	  #./configure --prefix=/usr --with-shared --without-normal \
+	  #  --without-debug --without-cxx-binding && \
+	  #make sources libs && \
+	  #cp -av lib/lib*.so.5* /usr/lib
+	echo "620_ncurses" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.21. Procps-3.2.7"
+# Nome funzione: F621_procps
+# -----------------------------------------------------------------------------
+function F621_procps()
+{
+	echo "621_procps" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.21. Procps-3.2.7"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xvf procps-3.2.7.tar.gz && \
+	cd procps-3.2.7 && \
+	time {
+	  make && \
+	  make install && \
+	echo "621_procps" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.22. Libtool-1.5.24"
+# Nome funzione: F622_libtool
+# -----------------------------------------------------------------------------
+function F622_libtool()
+{
+	echo "622_libtool" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.22. Libtool-1.5.24"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf libtool-1.5.24.tar.gz && \
+	cd libtool-1.5.24 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "622_libtool" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.23. Perl-5.8.8"
+# Nome funzione: F623_perl
+# -----------------------------------------------------------------------------
+function F623_perl()
+{
+	echo "623_perl" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.23. Perl-5.8.8"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj perl-5.8.8.tar.bz2 && \
+	cd perl-5.8.8 && \
+	time {
+	  echo "127.0.0.1 localhost $(hostname)" > /etc/hosts && \
+	  ./configure.gnu --prefix=/usr \
+	      -Dman1dir=/usr/share/man/man1 \
+	      -Dman3dir=/usr/share/man/man3 \
+	      -Dpager="/usr/bin/less -isR" && \
+	  make && \
+	  make install && \
+	echo "623_perl" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.24. Readline-5.2"
+# Nome funzione: F624_readline
+# -----------------------------------------------------------------------------
+function F624_readline()
+{
+	echo "624_readline" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.24. Readline-5.2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf readline-5.2.tar.gz && \
+	cd readline-5.2 && \
+	time {
+	  sed -i '/MV.*old/d' Makefile.in && \
+	  sed -i '/{OLDSUFF}/c:' support/shlib-install && \
+	  patch -Np1 -i ../readline-5.2-fixes-3.patch && \
+	  ./configure --prefix=/usr --libdir=/lib && \
+	  make SHLIB_LIBS=-lncurses && \
+	  make install && \
+	  mv -v /lib/lib{readline,history}.a /usr/lib && \
+	  rm -v /lib/lib{readline,history}.so && \
+	  ln -sfv ../../lib/libreadline.so.5 /usr/lib/libreadline.so && \
+	  ln -sfv ../../lib/libhistory.so.5 /usr/lib/libhistory.so && \
+	echo "624_readline" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.25. Zlib-1.2.3"
+# Nome funzione: F625_zlib
+# -----------------------------------------------------------------------------
+function F625_zlib()
+{
+	echo "625_zlib" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.25. Zlib-1.2.3"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf zlib-1.2.3.tar.gz && \
+	cd zlib-1.2.3 && \
+	time {
+	  #RIVEDERE
+	  #DISATTIVARE LA COMPILAZIONE OTTIMIZZATA
+	  #Zlib is known to build its shared library incorrectly if CFLAGS is specified in the environment. If using a 		  #specified CFLAGS variable, be sure to add the -fPIC directive to the CFLAGS variable for the duration of the 	  #configure command below, then remove it afterwards
+	  ./configure --prefix=/usr --shared --libdir=/lib && \
+	  make && \
+	  make install && \
+	  rm -v /lib/libz.so && \
+	  ln -sfv ../../lib/libz.so.1.2.3 /usr/lib/libz.so && \
+	  make clean && \
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	  chmod -v 644 /usr/lib/libz.a && \
+	echo "625_zlib" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.26. Autoconf-2.61"
+# Nome funzione: F626_autoconf
+# -----------------------------------------------------------------------------
+function F626_autoconf()
+{
+	echo "626_autoconf" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.26. Autoconf-2.61"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj autoconf-2.61.tar.bz2 && \
+	cd autoconf-2.61 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "626_autoconf" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.27. Automake-1.10"
+# Nome funzione: F627_automake
+# -----------------------------------------------------------------------------
+function F627_automake()
+{
+	echo "627_automake" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.27. Automake-1.10"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj automake-1.10.tar.bz2 && \
+	cd automake-1.10 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "627_automake" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.28. Bash-3.2"
+# Nome funzione: F628_bash
+# -----------------------------------------------------------------------------
+function F628_bash()
+{
+	echo "628_bash" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.28. Bash-3.2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf bash-3.2.tar.gz && \
+	cd bash-3.2 && \
+	tar -xvf ../bash-doc-3.2.tar.gz && \
+	time {
+	  sed -i "s|htmldir = @htmldir@|htmldir = /usr/share/doc/bash-3.2|" \
+	      Makefile.in && \
+	  patch -Np1 -i ../bash-3.2-fixes-5.patch && \
+	  ./configure --prefix=/usr --bindir=/bin \
+	      --without-bash-malloc --with-installed-readline && \
+	  make && \
+	  sed -i 's/LANG/LC_ALL/' tests/intl.tests && \
+	  sed -i 's@tests@& </dev/tty@' tests/run-test && \
+	  chown -Rv nobody ./ && \
+	  su-tools nobody -s /bin/bash -c "make tests" && \
+	  make install && \
+	  exec /bin/bash --login +h && \
+	echo "628_bash" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.29. Bzip2-1.0.4"
+# Nome funzione: F629_bzip2
+# -----------------------------------------------------------------------------
+function F629_bzip2()
+{
+	echo "629_bzip2" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.29. Bzip2-1.0.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf bzip2-1.0.4.tar.gz && \
+	cd bzip2-1.0.4 && \
+	time {
+	  patch -Np1 -i ../bzip2-1.0.4-install_docs-1.patch && \
+	  make -f Makefile-libbz2_so && \
+	  make clean && \
+	  make && \
+	  make PREFIX=/usr install && \
+	  cp -v bzip2-shared /bin/bzip2 && \
+	  cp -av libbz2.so* /lib && \
+	  ln -sv ../../lib/libbz2.so.1.0 /usr/lib/libbz2.so && \
+	  rm -v /usr/bin/{bunzip2,bzcat,bzip2} && \
+	  ln -sv bzip2 /bin/bunzip2 && \
+	  ln -sv bzip2 /bin/bzcat && \
+	echo "629_bzip2" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.30. Diffutils-2.8.1"
+# Nome funzione: F630_diffutils
+# -----------------------------------------------------------------------------
+function F630_diffutils()
+{
+	echo "630_diffutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.30. Diffutils-2.8.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj diffutils-2.8.1.tar.bz2 && \
+	cd diffutils-2.8.1 && \
+	time {
+	  patch -Np1 -i ../diffutils-2.8.1-i18n-1.patch && \
+	  touch man/diff.1 && \
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "630_diffutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.31. File-4.21"
+# Nome funzione: F631_file
+# -----------------------------------------------------------------------------
+function F631_file()
+{
+	echo "631_file" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.31. File-4.21"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf file-4.21.tar.gz && \
+	cd file-4.21 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "631_file" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.32. Findutils-4.2.31"
+# Nome funzione: F632_findutils
+# -----------------------------------------------------------------------------
+function F632_findutils()
+{
+	echo "632_findutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.32. Findutils-4.2.31"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf findutils-4.2.31.tar.gz && \
+	cd findutils-4.2.31 && \
+	time {
+	  ./configure --prefix=/usr --libexecdir=/usr/lib/findutils \
+	      --localstatedir=/var/lib/locate && \
+	  make && \
+	  make install && \
+	  mv -v /usr/bin/find /bin && \
+	  sed -i -e 's/find:=${BINDIR}/find:=\/bin/' /usr/bin/updatedb && \
+	echo "632_findutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.33. Flex-2.5.33"
+# Nome funzione: F633_flex
+# -----------------------------------------------------------------------------
+function F633_flex()
+{
+	echo "633_flex" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.33. Flex-2.5.33"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj flex-2.5.33.tar.bz2 && \
+	cd flex-2.5.33 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	  ln -sv libfl.a /usr/lib/libl.a && \
+cat > /usr/bin/lex << "EOF"
+#!/bin/sh
+# Begin /usr/bin/lex
+
+exec /usr/bin/flex -l "$@"
+
+# End /usr/bin/lex
+EOF
+	  chmod -v 755 /usr/bin/lex && \
+	echo "633_flex" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.34. GRUB-0.97"
+# Nome funzione: F634_grub
+# -----------------------------------------------------------------------------
+function F634_grub()
+{
+	echo "634_grub" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.34. GRUB-0.97"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf grub-0.97.tar.gz && \
+	cd grub-0.97 && \
+	time {
+	  patch -Np1 -i ../grub-0.97-disk_geometry-1.patch && \
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	  mkdir -v /boot/grub && \
+	  cp -v /usr/lib/grub/i386-pc/stage{1,2} /boot/grub && \
+	echo "634_grub" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.35. Gawk-3.1.5"
+# Nome funzione: F635_gawk
+# -----------------------------------------------------------------------------
+function F635_gawk()
+{
+	echo "635_gawk" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.35. Gawk-3.1.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gawk-3.1.5.tar.bz2 && \
+	cd gawk-3.1.5 && \
+	time {
+	  patch -Np1 -i ../gawk-3.1.5-segfault_fix-1.patch && \
+	  ./configure --prefix=/usr --libexecdir=/usr/lib && \
+cat >> config.h << "EOF"
+#define HAVE_LANGINFO_CODESET 1
+#define HAVE_LC_MESSAGES 1
+EOF
+	  make && \
+	  make install && \
+	echo "635_gawk" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.36. Gettext-0.16.1"
+# Nome funzione: F636_gettext
+# -----------------------------------------------------------------------------
+function F636_gettext()
+{
+	echo "636_gettext" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.36. Gettext-0.16.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gettext-0.16.1.tar.bz2 && \
+	cd gettext-0.16.1 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "636_gettext" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.37. Grep-2.5.1a"
+# Nome funzione: F637_grep
+# -----------------------------------------------------------------------------
+function F637_grep()
+{
+	echo "637_grep" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.37. Grep-2.5.1a"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj grep-2.5.1a.tar.bz2 && \
+	cd grep-2.5.1a && \
+	time {
+	  patch -Np1 -i ../grep-2.5.1a-redhat_fixes-2.patch && \
+	  chmod +x tests/fmbtest.sh && \
+	  ./configure --prefix=/usr --bindir=/bin && \
+	  make && \
+	  make install && \
+	echo "637_grep" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.38. Groff-1.18.1.4"
+# Nome funzione: F638_groff
+# -----------------------------------------------------------------------------
+function F638_groff()
+{
+	echo "638_groff" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.38. Groff-1.18.1.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xvf groff-1.18.1.4.tar.gz && \
+	cd groff-1.18.1.4 && \
+	time {
+	  patch -Np1 -i ../groff-1.18.1.4-debian_fixes-1.patch && \
+	  sed -i -e 's/2010/002D/' -e 's/2212/002D/' \
+	      -e 's/2018/0060/' -e 's/2019/0027/' font/devutf8/R.proto && \
+	  PAGE=A4 ./configure --prefix=/usr --enable-multibyte && \
+	  make && \
+	  make install && \
+	  ln -sv eqn /usr/bin/geqn && \
+	  ln -sv tbl /usr/bin/gtbl && \
+	echo "638_groff" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.39. Gzip-1.3.12"
+# Nome funzione: F639_gzip
+# -----------------------------------------------------------------------------
+function F639_gzip()
+{
+	echo "639_gzip" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.39. Gzip-1.3.12"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf gzip-1.3.12.tar.gz && \
+	cd gzip-1.3.12 && \
+	time {
+	  ./configure --prefix=/usr --bindir=/bin && \
+	  make && \
+	  make install && \
+	  mv -v /bin/{gzexe,uncompress,zcmp,zdiff,zegrep} /usr/bin && \
+	  mv -v /bin/{zfgrep,zforce,zgrep,zless,zmore,znew} /usr/bin
+	echo "639_gzip" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.40. Inetutils-1.5"
+# Nome funzione: F640_inetutils
+# -----------------------------------------------------------------------------
+function F640_inetutils()
+{
+	echo "640_inetutils" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.40. Inetutils-1.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf inetutils-1.5.tar.gz && \
+	cd inetutils-1.5 && \
+	time {
+	  patch -Np1 -i ../inetutils-1.5-no_server_man_pages-2.patch && \
+	  ./configure --prefix=/usr --libexecdir=/usr/sbin \
+	      --sysconfdir=/etc --localstatedir=/var \
+	      --disable-ifconfig --disable-logger --disable-syslogd \
+	      --disable-whois --disable-servers && \
+	  make && \
+	  make install && \
+	  mv -v /usr/bin/ping /bin && \
+	echo "640_inetutils" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.41. IPRoute2-2.6.20-070313"
+# Nome funzione: F641_iproute2
+# -----------------------------------------------------------------------------
+function F641_iproute2()
+{
+	echo "641_iproute2" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.41. IPRoute2-2.6.20-070313"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf iproute2-2.6.20-070313.tar.gz && \
+	cd iproute2-2.6.20-070313 && \
+	time {
+	  sed -i -e '/tc-bfifo.8/d' -e '/tc-pfifo.8/s/pbfifo/bfifo/' Makefile && \
+	  make SBINDIR=/sbin && \
+	  make SBINDIR=/sbin install && \
+	  mv -v /sbin/arpd /usr/sbin && \
+	echo "641_iproute2" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.42. Kbd-1.12"
+# Nome funzione: F642_kbd
+# -----------------------------------------------------------------------------
+function F642_kbd()
+{
+	echo "642_kbd" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.42. Kbd-1.12"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj kbd-1.12.tar.bz2 && \
+	cd kbd-1.12 && \
+	time {
+	  patch -Np1 -i ../kbd-1.12-backspace-1.patch && \
+	  patch -Np1 -i ../kbd-1.12-gcc4_fixes-1.patch && \
+	  ./configure --datadir=/lib/kbd && \
+	  make && \
+	  make install && \
+	  mv -v /usr/bin/{kbd_mode,openvt,setfont} /bin && \
+	echo "642_kbd" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.43. Less-406"
+# Nome funzione: F643_less
+# -----------------------------------------------------------------------------
+function F643_less()
+{
+	echo "643_less" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.43. Less-406"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf less-406.tar.gz && \
+	cd less-406 && \
+	time {
+	  ./configure --prefix=/usr --sysconfdir=/etc && \
+	  make && \
+	  make install && \
+	echo "643_less" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.44. Make-3.81"
+# Nome funzione: F644_make
+# -----------------------------------------------------------------------------
+function F644_make()
+{
+	echo "644_make" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.44. Make-3.81"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj make-3.81.tar.bz2 && \
+	cd make-3.81 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "644_make" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.45. Man-DB-2.4.4"
+# Nome funzione: F645_man_db
+# -----------------------------------------------------------------------------
+function F645_man_db()
+{
+	echo "645_man_db" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.45. Man-DB-2.4.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf man-db-2.4.4.tar.gz && \
+	cd man-db-2.4.4 && \
+	time {
+	  mv man/de{_DE.88591,} && \
+	  mv man/es{_ES.88591,} && \
+	  mv man/it{_IT.88591,} && \
+	  mv man/ja{_JP.eucJP,} && \
+	  sed -i 's,\*_\*,??,' man/Makefile.in && \
+	  sed -i -e '\%\t/usr/man%d' -e '\%\t/usr/local/man%d' src/man_db.conf.in && \
+cat >> include/manconfig.h.in << "EOF"
+#define WEB_BROWSER "exec /usr/bin/lynx"
+#define COL "/usr/bin/col"
+#define VGRIND "/usr/bin/vgrind"
+#define GRAP "/usr/bin/grap"
+EOF
+	  patch -Np1 -i ../man-db-2.4.4-fixes-1.patch && \
+	  ./configure --prefix=/usr --enable-mb-groff --disable-setuid && \
+	  make && \
+	  make install && \
+cat >> convert-mans << "EOF"
+#!/bin/sh -e
+FROM="$1"
+TO="$2"
+shift ; shift
+while [ $# -gt 0 ]
+do
+        FILE="$1"
+        shift
+        iconv -f "$FROM" -t "$TO" "$FILE" >.tmp.iconv
+        mv .tmp.iconv "$FILE"
+done
+EOF
+	  install -m755 convert-mans  /usr/bin && \
+	  #RIVEDERE
+	  mkdir -p /usr/share/man/it && \
+	  cp -rv man? /usr/share/man/it && \
+	  mv man7/iso_8859-7.7{,X} && \
+	  #RIVEDERE
+	  convert-mans UTF-8 ISO-8859-1 man?/*.? && \
+	  mv man7/iso_8859-7.7{X,} && \
+	  make install && \
+	echo "645_man_db" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.46. Mktemp-1.5"
+# Nome funzione: F646_mktemp
+# -----------------------------------------------------------------------------
+function F646_mktemp()
+{
+	echo "646_mktemp" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.46. Mktemp-1.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf mktemp-1.5.tar.gz && \
+	cd mktemp-1.5 && \
+	time {
+	  patch -Np1 -i ../mktemp-1.5-add_tempfile-3.patch && \
+	  ./configure --prefix=/usr --with-libc && \
+	  make && \
+	  make install && \
+	  make install-tempfile && \
+	echo "646_mktemp" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.47. Module-Init-Tools-3.2.2"
+# Nome funzione: F647_module_init_tools
+# -----------------------------------------------------------------------------
+function F647_module_init_tools()
+{
+	echo "647_module_init_tools" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.47. Module-Init-Tools-3.2.2"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj module-init-tools-3.2.2.tar.bz2 && \
+	cd module-init-tools-3.2.2 && \
+	time {
+	  patch -Np1 -i ../module-init-tools-3.2.2-modprobe-1.patch && \
+	  ./configure && \
+	  make check && \
+	  make distclean && \
+	  ./configure --prefix=/ --enable-zlib && \
+	  make && \
+	  make INSTALL=install install && \
+	echo "647_module_init_tools" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.48. Patch-2.5.4"
+# Nome funzione: F648_patch
+# -----------------------------------------------------------------------------
+function F648_patch()
+{
+	echo "648_patch" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.48. Patch-2.5.4"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf patch-2.5.4.tar.gz && \
+	cd patch-2.5.4 && \
+	time {
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	echo "648_patch" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.49. Psmisc-22.5"
+# Nome funzione: F649_psmisc
+# -----------------------------------------------------------------------------
+function F649_psmisc()
+{
+	echo "649_psmisc" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.49. Psmisc-22.5"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf psmisc-22.5.tar.gz && \
+	cd psmisc-22.5 && \
+	time {
+	  ./configure --prefix=/usr --exec-prefix="" && \
+	  make && \
+	  make install && \
+	  mv -v /bin/pstree* /usr/bin && \
+	  ln -sv killall /bin/pidof && \
+	echo "649_psmisc" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.50. Shadow-4.0.18.1"
+# Nome funzione: F650_shadow
+# -----------------------------------------------------------------------------
+function F650_shadow()
+{
+	echo "650_shadow" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.50. Shadow-4.0.18.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj shadow-4.0.18.1.tar.bz2 && \
+	cd shadow-4.0.18.1 && \
+	time {
+	  patch -Np1 -i ../shadow-4.0.18.1-useradd_fix-2.patch && \
+	  ./configure --libdir=/lib --sysconfdir=/etc --enable-shared \
+	      --without-selinux && \
+	  sed -i 's/groups$(EXEEXT) //' src/Makefile && \
+	  find man -name Makefile -exec sed -i 's/groups\.1 / /' {} \; && \
+	  sed -i -e 's/ ko//' -e 's/ zh_CN zh_TW//' man/Makefile && \
+	  for i in de es fi fr id it pt_BR; do
+	      #RIVEDERE
+	      convert-mans UTF-8 ISO-8859-1 man/${i}/*.?
+	  done
+	  for i in cs hu pl; do
+	      #RIVEDERE
+	      convert-mans UTF-8 ISO-8859-2 man/${i}/*.?
+	  done
+	  convert-mans UTF-8 EUC-JP man/ja/*.? && \
+	  convert-mans UTF-8 KOI8-R man/ru/*.? && \
+	  convert-mans UTF-8 ISO-8859-9 man/tr/*.? && \
+	  sed -i -e 's@#MD5_CRYPT_ENAB.no@MD5_CRYPT_ENAB yes@' \
+	      -e 's@/var/spool/mail@/var/mail@' etc/login.defs && \
+	  #RIVEDERE
+	  #sed -i 's@DICTPATH.*@DICTPATH\t/lib/cracklib/pw_dict@' \
+	  #    etc/login.defs
+	  make && \
+	  make install && \
+	  mv -v /usr/bin/passwd /bin && \
+	  mv -v /lib/libshadow.*a /usr/lib && \
+	  rm -v /lib/libshadow.so && \
+	  ln -sfv ../../lib/libshadow.so.0 /usr/lib/libshadow.so && \
+	  pwconv && \
+	  grpconv && \
+	  useradd -D -b /home && \
+	  sed -i 's/yes/no/' /etc/default/useradd && \
+	  #RIVEDERE
+	  passwd root lfs && \
+	echo "650_shadow" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.51. Sysklogd-1.4.1"
+# Nome funzione: F651_sysklogd
+# -----------------------------------------------------------------------------
+function F651_sysklogd()
+{
+	echo "651_sysklogd" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.51. Sysklogd-1.4.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xvf sysklogd-1.4.1.tar.gz && \
+	cd sysklogd-1.4.1 && \
+	time {
+	  patch -Np1 -i ../sysklogd-1.4.1-fixes-2.patch && \
+	  patch -Np1 -i ../sysklogd-1.4.1-8bit-1.patch && \
+	  make && \
+	  make install && \
+cat > /etc/syslog.conf << "EOF"
+# Begin /etc/syslog.conf
+
+auth,authpriv.* -/var/log/auth.log
+*.*;auth,authpriv.none -/var/log/sys.log
+daemon.* -/var/log/daemon.log
+kern.* -/var/log/kern.log
+mail.* -/var/log/mail.log
+user.* -/var/log/user.log
+*.emerg *
+
+# End /etc/syslog.conf
+EOF
+	echo "651_sysklogd" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.52. Sysvinit-2.86"
+# Nome funzione: F652_sysvinit
+# -----------------------------------------------------------------------------
+function F652_sysvinit()
+{
+	echo "652_sysvinit" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.52. Sysvinit-2.86"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar -xvf sysvinit-2.86.tar.gz && \
+	cd sysvinit-2.86 && \
+	time {
+	  sed -i 's@Sending processes@& configured via /etc/inittab@g' \
+	      src/init.c && \
+	  make -C src && \
+	  make -C src install && \
+cat > /etc/inittab << "EOF"
+# Begin /etc/inittab
+
+id:3:initdefault:
+
+si::sysinit:/etc/rc.d/init.d/rc sysinit
+
+l0:0:wait:/etc/rc.d/init.d/rc 0
+l1:S1:wait:/etc/rc.d/init.d/rc 1
+l2:2:wait:/etc/rc.d/init.d/rc 2
+l3:3:wait:/etc/rc.d/init.d/rc 3
+l4:4:wait:/etc/rc.d/init.d/rc 4
+l5:5:wait:/etc/rc.d/init.d/rc 5
+l6:6:wait:/etc/rc.d/init.d/rc 6
+
+ca:12345:ctrlaltdel:/sbin/shutdown -t1 -a -r now
+
+su:S016:once:/sbin/sulogin
+
+1:2345:respawn:/sbin/agetty tty1 9600
+2:2345:respawn:/sbin/agetty tty2 9600
+3:2345:respawn:/sbin/agetty tty3 9600
+4:2345:respawn:/sbin/agetty tty4 9600
+5:2345:respawn:/sbin/agetty tty5 9600
+6:2345:respawn:/sbin/agetty tty6 9600
+
+# End /etc/inittab
+EOF
+	echo "652_sysvinit" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.53. Tar-1.18"
+# Nome funzione: F653_tar
+# -----------------------------------------------------------------------------
+function F653_tar()
+{
+	echo "653_tar" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.53. Tar-1.18"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj tar-1.18.tar.bz2 && \
+	cd tar-1.18 && \
+	time {
+	  ./configure --prefix=/usr --bindir=/bin --libexecdir=/usr/sbin && \
+	  make && \
+	  make install && \
+	echo "653_tar" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.54. Texinfo-4.9"
+# Nome funzione: F654_texinfo
+# -----------------------------------------------------------------------------
+function F654_texinfo()
+{
+	echo "654_texinfo" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.54. Texinfo-4.9"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj texinfo-4.9.tar.bz2 && \
+	cd texinfo-4.9 && \
+	time {
+	  patch -Np1 -i ../texinfo-4.9-multibyte-1.patch && \
+	  patch -Np1 -i ../texinfo-4.9-tempfile_fix-1.patch && \
+	  ./configure --prefix=/usr && \
+	  make && \
+	  make install && \
+	  make TEXMF=/usr/share/texmf install-tex && \
+	  cd /usr/share/info && \
+	  rm dir
+	  for f in *
+	  do install-info $f dir 2>/dev/null
+	  done
+	echo "654_texinfo" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.55. Udev-113"
+# Nome funzione: F655_udev
+# -----------------------------------------------------------------------------
+function F655_udev()
+{
+	echo "655_udev" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.55. Udev-113"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj udev-113.tar.bz2 && \
+	cd udev-113 && \
+	time {
+	  tar -xvf ../udev-config-6.3.tar.bz2 && \
+	  install -dv /lib/{firmware,udev/devices/{pts,shm}} && \
+	  mknod -m0666 /lib/udev/devices/null c 1 3 && \
+	  ln -sv /proc/self/fd /lib/udev/devices/fd && \
+	  ln -sv /proc/self/fd/0 /lib/udev/devices/stdin && \
+	  ln -sv /proc/self/fd/1 /lib/udev/devices/stdout && \
+	  ln -sv /proc/self/fd/2 /lib/udev/devices/stderr && \
+	  ln -sv /proc/kcore /lib/udev/devices/core && \
+	  make EXTRAS="`echo extras/*/`" && \
+	  make DESTDIR=/ EXTRAS="`echo extras/*/`" install && \
+	  cp -v etc/udev/rules.d/[0-9]* /etc/udev/rules.d/ && \
+	  cd udev-config-6.3 && \
+	  make install && \
+	  make install-doc && \
+	  make install-extra-doc && \
+	  cd .. && \
+	  install -m644 -v docs/writing_udev_rules/index.html \
+	      /usr/share/doc/udev-113/index.html && \
+	echo "655_udev" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.56. Util-linux-2.12r"
+# Nome funzione: F656_util_linux
+# -----------------------------------------------------------------------------
+function F656_util_linux()
+{
+	echo "656_util_linux" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.56. Util-linux-2.12r"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj util-linux-2.12r.tar.bz2 && \
+	cd util-linux-2.12r && \
+	time {
+	  sed -e 's@etc/adjtime@var/lib/hwclock/adjtime@g' \
+	      -i $(grep -rl '/etc/adjtime' .) && \
+	  mkdir -pv /var/lib/hwclock && \
+	  patch -Np1 -i ../util-linux-2.12r-cramfs-1.patch && \
+	  patch -Np1 -i ../util-linux-2.12r-lseek-1.patch && \
+	  ./configure && \
+	  make HAVE_KILL=yes HAVE_SLN=yes && \
+	  make HAVE_KILL=yes HAVE_SLN=yes install && \
+	echo "656_util_linux" >> /qlfs-debug
+	}
+}
+
+
+# -----------------------------------------------------------------------------
+# Capitolo: "6.57. Vim-7.1"
+# Nome funzione: F657_vim
+# -----------------------------------------------------------------------------
+function F657_vim()
+{
+	echo "657_vim" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"################################"
+	echo "# 6.57. Vim-7.1"
+	echo "################################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj vim-7.1.tar.bz2 && \
+	cd vim71 && \
+	time {
+	  patch -Np1 -i ../vim-7.1-fixes-1.patch && \
+	  patch -Np1 -i ../vim-7.1-mandir-1.patch && \
+	  echo '#define SYS_VIMRC_FILE "/etc/vimrc"' >> src/feature.h && \
+	  ./configure --prefix=/usr --enable-multibyte && \
+	  make && \
+	  make install && \
+	  ln -sv vim /usr/bin/vi
+	  for L in "" fr it pl ru; do
+	      ln -sv vim.1 /usr/share/man/$L/man1/vi.1
+	  done
+	  ln -sv ../vim/vim71/doc /usr/share/doc/vim-7.1
+cat > /etc/vimrc << "EOF"
+" Begin /etc/vimrc
+
+set nocompatible
+set backspace=2
+syntax on
+if (&term == "iterm") || (&term == "putty")
+  set background=dark
+endif
+
+" End /etc/vimrc
+EOF
+	  vim -c ':options' && \
+	  #RIVEDERE
+	  #set spelllang=en,ru
+	  #set spell
+	echo "657_vim" >> /qlfs-debug
+	}
+}

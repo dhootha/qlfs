@@ -1,0 +1,57 @@
+#############################################################################
+#               QLFS-Live 2005 http://qlfs.spaghettilinux.org               #
+#                               Alpha Version                               #
+#                                                                           #
+#      Copyright (C) 2005 Matteo Mattei   matteo.mattei@gmail.com           #
+#                         Marco Sciatta   marco.sciatta@gmail.com           #
+#                                                                           #
+# This program is free software; you can redistribute it and/or modify      #
+# it under the terms of the GNU General Public License as published by      #
+# the Free Software Foundation; either version 2 of the License, or         #
+# (at your option) any later version.                                       #
+#                                                                           #
+# This program is distributed in the hope that it will be useful,           #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+# GNU General Public License for more details.                              #
+#                                                                           #
+# You should have received a copy of the GNU General Public License         #
+# along with this program; if not, write to the Free Software               #
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA #
+#                                                                           #
+#############################################################################
+
+ITALIAN:
+^^^^^^^^
+NOTE SULL'UTILIZZO: 
+Qlfs-live e' rilasciata in versione alpha. Su molti sistemi, e' risultata 
+completamente funzionante, ma e' possibile che determinate configurazioni 
+hardware, possano generare problemi. Per questo di default il server grafico 
+e' disabilitato, per lanciarlo , utilizzare il comando 'startx'. Xorg viene 
+avviato con una configurazione di default, nel caso si riscontrassero 
+malfunzionamenti, e' consigliabile utilizzare un'impostazione specifica per 
+il proprio hardware, configurando opportunamente il file /etc/X11/xorg.conf.
+Qlfs-live alpha consente inoltre la gestione dei moduli del kernel per 
+attivare il prorio hardware.
+
+DISCLAIMER:
+Gli autori del progetto non si assumo nessuna responsabilità sull'uso improprio 
+del prodotto, tantomeno per eventuali danni arrecati al proprio sistema.
+
+############################################################################
+
+ENGLISH:
+^^^^^^^^
+NOTES ABOUT USABILITY:
+Qlfs-live is distribuited in the alpha version. In the major part of system 
+all works fine but it's possible that for particular hardware configuration
+can born probles. So by default the graphic server is disabled, to lunch it
+use command 'startx'. Xorg will be activated with a default configuration and
+in case you find some troubles is preferible to use specific settings by your 
+own hardwares configuring file /etc/X11/xorg.conf. Qlfs-live alpha also allow
+the management of kernel modules to activate your hardware.
+
+DISCALMER:
+The authors don't assume any responsability by the erroneus use of this product
+and by the damages accurred to your system.
+

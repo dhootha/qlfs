@@ -1,0 +1,112 @@
+#!/bin/bash
+#****************************************************************************
+#               QLFS-511-final http://lfs-italia.homelinux.org              #
+#                                                                           #
+#      Copyright (C) 2005 Matteo Mattei   matteo.mattei@gmail.com           #
+#                         Marco Sciatta   marco.sciatta@gmail.com           #
+#                                                                           #
+# This program is free software; you can redistribute it and/or modify      #
+# it under the terms of the GNU General Public License as published by      #
+# the Free Software Foundation; either version 2 of the License, or         #
+# (at your option) any later version.                                       #
+#                                                                           #
+# This program is distributed in the hope that it will be useful,           #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+# GNU General Public License for more details.                              #
+#                                                                           #
+# You should have received a copy of the GNU General Public License         #
+# along with this program; if not, write to the Free Software               #
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA #
+#                                                                           #
+#****************************************************************************
+
+export LFS=/mnt/lfs
+wopt="--progress=dot:mega "  #stampa a video dei puntini durante il download
+gccsed="no"
+myecho="echo -e"
+mirror="ftp://spaghettilinux.org/spaghettilinux/projects/lfs-italia/pkg/"
+ROOT_UID=0				#controllo dell'utente root
+E_MD5SUM=2				#codice di exit del controllo md5
+E_NONROOT=69				#codice di exit di non-root
+EXIT_SUCCESS=0				#codice di ritorno se tutto e' andato a buon fine
+EXIT_COMPILE=1				#codice di exit nella compilazione nel caso di errore
+wopt="--progress=dot:mega" 		#stampa a video dei puntini durante il download
+COMMENT='#'
+#PROVA
+#ITA="ITA"
+#ENG="ENG"
+#Var=""
+#Format
+#MR=""
+#ME=""
+#ME3=""
+#M1=""
+#M2=""
+#MF=""
+### ==> Install.sh
+#inst1=""
+#instM=""
+#inst2=""
+#inst3=""
+#inst4=""
+#inst5=""
+#instFP1=""
+#instFP2=""
+#FSs=""
+#FSq=""
+#instMT=""
+#instMK=""
+#instMF=""
+#instPA=""
+#instPU=""
+#instAPU=""
+#instF=""
+######## <=== 
+#### ==> bashlogin.sh 
+#m1=""
+#######  <===
+#### ==> Step1.sh
+#SD1=""
+#SDP=""
+#SDF=""
+#SDR=""
+#SDS=""
+#SCP=""
+#SDW=""
+#SDC=""
+#SDCK=""
+#SDCKK=""
+#SDCKP=""
+#SDCSC=""
+#STF=""
+######## <===   
+### ==> Step2.sh
+#STF=""
+#######  <===
+### ==> Step3.sh
+#STPF=""
+#######  <===
+### ==> Step4.sh
+#STWDC=""
+#STFF=""
+#######  <===
+### ==> Step5.sh
+#STCR=""
+#STCF=""
+#######  <===
+### ==> Step6.sh
+#STRS=""
+#STWP=""
+#STBLS=""
+#STDP=""
+#SRA=""
+#SRM=""
+#STAR=""
+#STBC=""
+#######  <===
+   
+############################################
+#### VARIABILI settate in runtime ##########
+############################################
+

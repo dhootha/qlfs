@@ -1,0 +1,95 @@
+#!/bin/bash
+#****************************************************************************
+#               QLFS-60alpha http://lfs-italia.homelinux.org                #
+#                                                                           #
+#      Copyright (C) 2005 Matteo Mattei   matteo.mattei@gmail.com           #
+#                         Marco Sciatta   marco.sciatta@gmail.com           #
+#                                                                           #
+# This program is free software; you can redistribute it and/or modify      #
+# it under the terms of the GNU General Public License as published by      #
+# the Free Software Foundation; either version 2 of the License, or         #
+# (at your option) any later version.                                       #
+#                                                                           #
+# This program is distributed in the hope that it will be useful,           #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+# GNU General Public License for more details.                              #
+#                                                                           #
+# You should have received a copy of the GNU General Public License         #
+# along with this program; if not, write to the Free Software               #
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA #
+#                                                                           #
+#****************************************************************************
+
+##############################
+########## ENGLISH ###########
+##############################
+
+# Format
+MET="########################################\n# EXT2 FILE SYSTEM SELECTED #\n########################################"
+MRT="############################################\n# REISERFS FILE SYSTEM SELECTED #\n############################################"
+MET3="########################################\n# EXT3 FILE SYSTEM SELECTED #\n########################################"
+M1T="format in progress..."
+M2T="format complete"
+MFT="An error has occurred during the format process on "
+#install.sh
+instT1="You must be root for run this script."
+instTM="Welcome to the fantastic world of Linux From Scratch 6.0 !!!\nThis script will automate all the work that you will have to carry out.\nThis script is issued under the GPL license and than, can be used\nmodified and redistribuited without no problems ;-)\n"
+instTT="This is the partition table of your machine"
+instT2="Please insert the partition in which mount LFS: [/dev/hdaX]"
+instSWAP="Do you have a partition for swap?"
+instSWAP1="Please enter the partition for swap: [/dev/hdaY]"
+instSWAP2="Swap partition is now ready..."
+instSWAP3="Bad partition... takes shared swap"
+instT3="The selected patition for / is: "
+instT4="Are you sure to continue?"
+instT5="The partition you typed do not exists!"
+instTFP1="Are you surest to format the partition "
+instTFP2="Check before that the selected partition is the corrected one.\nYou will lose ALL of your data on this partition! Continue?"
+FSsT="Choose the File System type [DEFAULT == EXT3]\nType :\n1 ==> EXT3\n2 ==> EXT2\n3 ==> REISERFS\n"
+FSqT="Type a number (1-3)"
+instTMT="Mount the partition on /mnt/lfs"
+instTMK="Correctly mounted!"
+instTMF="Mount Impossible on "
+instTPA="Prepare the ambient for the compilation"     
+instTPU="Please insert the password for the lfs user: "
+instTAPU="Set permission for the lfs user"
+instTF="Now launch the login script by typing '/tmp/lfs/bashlogin.sh'"
+#bashlogin.sh
+mT1="For starting the creation of the temporary system launch the command: '/tmp/lfs/step1.sh'."
+#Step1.sh
+SDT1="You alredy have all the source of lfs 6.0 ?"
+SDTP="Please insert the path of the directory in wich packages are: "
+SDTF="The directory is not valid: "
+SDTS="The directory typed is:"
+SCTP="Copy all the file in progress..."
+SCTW="The script will supply at the automatic download\nof all the source from the server: "
+SCTC="Download of the source complete..."
+SDCTK="Control checksum on all the packages in progress..."
+SDCTKK="checksum correctly executed..."
+SDCTKP="Some problems with the checksum of the source..."
+SDCTSC="CREATION OF THE TEMPORARY SYSTEM\nStarting compilation"
+STTF="FINE STEP 1\nWrite 'exit' and so 'logout' to return at the root user.\nThen run '/tmp/lfs/step2.sh'."
+#Step2.sh
+STTDF="For go on the installation, launch the step3 by typing 'sh step3.sh'."
+#Step3.sh
+STTPF="Now launch step 4: 'sh step4.sh'."
+#Step4.sh
+STTWDC="Waiting for the check of the directory with the source"
+STTFF="Now proceed with the compilation by launching step5 so: 'sh step5.sh'."
+#Step5.sh
+STTCR="# Network Configuration "
+STTCF="LFS SYSTEM INSTALLED!!!\nNow write exit until you not return at the root user of the host system\nafter returns at the root of the host system, launch the step6 for\ninitializing your systen with '/tmp/lfs/step6.sh'"
+SSTRIP="File Stripping"
+SCONFCON="Console configuration"
+#step6.sh
+STTNRS="### REMOVING SCRIPT FILES ###"
+STTWP="Please waiting..."
+STTBLS="The script will try install GRUB bootloader in MBR.\nDo you want to install Grub in the master boot record? [No/yes]\n"
+STTDP="Please insert the partition on which is installed LFS "
+STTAR="The system needs to be rebooted, type ENTER to automatically reboot,\notherwise write 'no' and manually reboot later."
+SRAT="automatically reboot"
+SRMT="manually reboot"
+STTBC="It's necessary to upadate your bootloader before you can start QLFS!"
+KERNMSG="Now you must compile the linux kernel...\nTo use a default config-file you must go in\nLoad An Alternate Configuration File and write ./config\nIf you want to edit the kernel by your hand you can do it without\nany problems. At the end, exit and save the config just created\n"
+OKTOCON="Press Enter To Continue"

@@ -1,11 +1,10 @@
-qlfs
-====
+################################################
+## QLFS-6.1 ## http://qlfs.spaghettilinux.org ##
+################################################
 
-Quick Linux From Scratch
-
-Qlfs e' uno script interamente scritto in bash per automatizzare il processo
+Qlfs e' uno script interamente scritto in bash per automatizzare il processo 
 di compilazione di Linux From Scratch.
-Per installare Qlfs avete bisogno solo di una distribuzione linux
+Per installare Qlfs avete bisogno solo di una distribuzione linux 
 funzionante preinstallata su hardisk con annesso bash e il gcc.
 
 REQUISITI FONDAMENTALI:
@@ -15,15 +14,15 @@ REQUISITI FONDAMENTALI:
 - una conessione veloce (se possibile)
 
 IMPORTANTE:
-Inoltre e' sconsigliato lanciare piu di una volta lo stesso step in caso di
+Inoltre e' sconsigliato lanciare piu di una volta lo stesso step in caso di 
 errore, occorre infatti eseguire di nuovo la compilazione dal file install.sh.
 
 INSTALLAZIONE:
-Qlfs e' pensato per essere facilmente usabile da tutti anche da chi non
-ha molta dimestichezza con ambientei *NIX.
-Qlfs supporta ora molte opzioni per abilitare delle funzioni altrimenti
-escluse di default. Per vedere quali opzioni sono tuttora disponibili
-basta lanciare ./install -h
+Qlfs e' pensato per essere facilmente usabile da tutti anche da chi non 
+ha molta dimestichezza con ambientei *NIX. 
+Qlfs supporta ora molte opzioni per abilitare delle funzioni altrimenti 
+escluse di default. Per vedere quali opzioni sono tuttora disponibili 
+basta lanciare ./install -h 
 Inoltre e' incluso il supporto per il linguaggio inglese impostato di default.
 Per avviare l'installazione e' sufficiente aprire una console, loggarsi da root, entrare nella directory
 in cui si e' estratto il pacchetto di qlfs, lanciare il comando ./install.sh coni parametri desiderati e seguire tutte le istruzioni fino ad arrivare al termine della compilazione
@@ -32,17 +31,17 @@ vera e propria di QLFS.
 TEMPI:
 Dopo varie prove abbiamo riscontrato che per compilare possedendo direttamente
 i sorgenti da un Athlon XP 2800+ con 512 MB di RAM i tempi si aggirano circa
-sull'ordine delle 2 ore e mezzo, mentre su un Athlon 2600 con 512 MB di RAM,
+sull'ordine delle 2 ore e mezzo, mentre su un Athlon 2600 con 512 MB di RAM, 
 la compilazione richiede circa 3 ore e mezzo.
 
 PROBLEMI:
 Se avete problemi di qualsiasi tipo non dovete fare altro che scrivere sul
-wiki del sito nella sezione GuestBook e nell'arco di poco tempo qualcuno
-vi rispondera'. Per un aiuto diretto potete contattare direttamente gli
+wiki del sito nella sezione GuestBook e nell'arco di poco tempo qualcuno 
+vi rispondera'. Per un aiuto diretto potete contattare direttamente gli 
 sviluppatori sul canale IRC #qlfs sul server Azzurranet.
 Per segnalare errori o malfunzionamenti, sul sito c'e' l'apposito spazio dove
 ognuno e' invitato a scrivere.
-Nella sezione  KnowProblems inoltre sono riportati i problemi riscontrati
+Nella sezione  KnowProblems inoltre sono riportati i problemi riscontrati 
 durante la compilazione di QLFS.
 
 RINGRAZIAMENTI:
@@ -50,3 +49,5 @@ Un grazie di cuore a tutti per l'interessamento e la fiducia.
 Un grazie a www.lfs-italia.org per il supporto.
 Un grazie alle persone sul chan IRC che ci hanno stimolato.
 Un grazie agli sviluppatori che sono arrivati esausti al termine del lavoro.
+
+

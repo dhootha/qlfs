@@ -1,0 +1,115 @@
+#############################################################################
+#               QLFS-Live 2005 http://qlfs.spaghettilinux.org               #
+#                               Alpha Version                               #
+#                                                                           #
+#      Copyright (C) 2005 Matteo Mattei   matteo.mattei@gmail.com           #
+#                         Marco Sciatta   marco.sciatta@gmail.com           #
+#                                                                           #
+# This program is free software; you can redistribute it and/or modify      #
+# it under the terms of the GNU General Public License as published by      #
+# the Free Software Foundation; either version 2 of the License, or         #
+# (at your option) any later version.                                       #
+#                                                                           #
+# This program is distributed in the hope that it will be useful,           #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+# GNU General Public License for more details.                              #
+#                                                                           #
+# You should have received a copy of the GNU General Public License         #
+# along with this program; if not, write to the Free Software               #
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA #
+#                                                                           #
+#############################################################################
+
+ITALIAN:
+^^^^^^^^
+Qlfs e' uno script interamente scritto in bash per automatizzare il processo 
+di compilazione di Linux From Scratch. Per installare Qlfs tramite questa Live 
+cd non avete bisogno di nient'altro dal momento che tutto cio' che vi occorre 
+lo trovate qui sopra.
+
+REQUISITI FONDAMENTALI:
+- una partizione di almeno 3 GB su hardisk
+- un po' di tempo ;)
+
+IMPORTANTE:
+Inoltre e' sconsigliato lanciare piu di una volta lo stesso step in caso di 
+errore. E' quindi consigliabile, se qualcosa andasse storto, di ripartire 
+da capo rebootando il cd ed eseguendo di nuovo la compilazione dal file install.sh.
+
+INSTALLAZIONE:
+Qlfs e' pensato per essere facilmente usabile da tutti anche da chi non 
+ha molta dimestichezza con ambientei *NIX. Qlfs supporta adesso alcune opzioni 
+per abilitare delle funzioni particolari altrimenti escluse di default. Per 
+vedere quali opzioni sono tuttora disponibili basta lanciare ./install -h.
+Tra le varie opzioni e' incluso il supporto per il linguaggio inglese, impostato 
+di default e per la lingua italiana. Per avviare l'installazione e' sufficiente 
+aprire una console, loggarsi da root, entrare nella directory /root/qlfs/, lanciare 
+il comando ./install.sh con i parametri desiderati e seguire tutte le istruzioni 
+fino ad arrivare al termine della compilazione vera e propria di QLFS.
+
+TEMPI 
+Dopo varie prove abbiamo riscontrato che i tempi di compilazione su un Athlon XP
+2800+ con 512 MB di RAM si aggirano circa sull'ordine delle 3 ore, mentre su un 
+Athlon 2600 con 512 MB di RAM, la compilazione richiede circa 3 ore e mezzo.
+
+PROBLEMI:
+Se avete problemi di qualsiasi tipo non dovete fare altro che scrivere sul
+wiki del sito nella sezione GuestBook e nell'arco di poco tempo qualcuno 
+vi rispondera'. Per un aiuto diretto potete contattare direttamente gli 
+sviluppatori sul canale IRC #qlfs sul server Azzurra.net. Altrimenti è possibile 
+accedere al forum ufficiale presente sul sito http://forum.spaghettilinux.org.
+Per segnalare errori o malfunzionamenti, sul sito c'e' l'apposito spazio dove
+ognuno e' invitato a scrivere, mentre nella sezione KnowProblems del sito sono 
+riportati i più noti problemi riscontrati durante la compilazione di QLFS.
+
+RINGRAZIAMENTI:
+Un grazie di cuore a tutti per l'interessamento e la fiducia.
+Un grazie a www.lfs-italia.org per il supporto.
+Un grazie alle persone sul chan IRC che ci hanno stimolato.
+Un grazie agli sviluppatori che sono arrivati esausti al termine del lavoro.
+
+#############################################################################
+
+ENGLISH:
+^^^^^^^^
+Qlfs is a script witten interely in bash to automatize the compiling process of 
+Linux From Scratch. To install QLFS by this Live cd, you don't need anymore because 
+of all the tools necessary to compile may be find here. 
+
+BASIC REQUIRES: 
+- a free partition not less than 3 GB in your hardisk 
+- just bit of time ;-) 
+
+IMPORTANT:
+It's not recommended to run more than one time the same step in case of errore. 
+It's instead a good idea, if something go wrong, to restart the installation from 
+zero with the reboot of this cd and the new run of the compilazione of install.sh. 
+
+INSTALLATION:
+Qlfs is thinked to be easly usable by all, also by who don't be particulary familiar 
+with the *NIX enviroments. Qlfs supports now some options to abilitate any particular 
+functions that they are excluded by default. To see these options that are now available
+run ./install.sh -h. Into these options it's inclused also a support for english
+(default) and italia language. To start the installation it's sufficient to open a 
+console, login as root, enter in /root/qlfs/ directory and run ./install.sh with needed
+parameters and follow instructions to arrive at the end of installation of QLFS system. 
+
+SPENT TIME:
+After some experiments, the during of the compilation for an Athlon XP 2800+ with 
+512 MB of Ram is about 3 housr, and for an Athlon XP 2600+ with 512 MB of Ram about
+3 hours and a half.
+
+PROBLEMS:
+If you have some questions or any kind of problems, you can simply write in the wiki 
+of the project in the GuestBook section and in a few time an ansewer will be to you!
+For direct help you can contact directly the developers on IRC channel #Qlfs present 
+in the Azzurra.net server. Instead you can access to the ufficial forum present on the
+webiste http://forum.spaghettilinux.org. To signalize errors and bugs there is a 
+specific place called KnowProblems on the wiki where are reported the most common 
+problems found during the compilation.
+
+REGARDS:
+Thanks to www.lfs-italia.org for the support.
+Thanks to the person on the IRC channel.
+Thanks to the developers that are arrived very tired at the end of the end of this work.

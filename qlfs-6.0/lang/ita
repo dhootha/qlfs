@@ -1,0 +1,73 @@
+#!/bin/bash
+
+###############################
+########## ITALIANO ###########
+###############################
+
+#Format
+MET="########################################\n# SCELTO EXT2 COME TIPO DI FILE SYSTEM #\n########################################"
+MRT="############################################\n# SCELTO REISERFS COME TIPO DI FILE SYSTEM #\n############################################"
+MET3="########################################\n# SCELTO EXT3 COME TIPO DI FILE SYSTEM #\n########################################"
+M1T="formattazione in corso... "
+M2T="formattazione completata."
+MFT="Errore durante la formattazione di "
+#install.sh
+instT1="Devi essere root per eseguire questo script."
+instTM="Benvenuti nel fantastico mondo di Linux From Scratch 6.0!!!\nQuesto script automatizzera' tutto il lavoro che dovrete svolgere.\nLo script e' rilasciato sotto licenza GPL e quindi puo' essere usato,\nmodificato e ridistruibuito senza nessun problema ;-) "
+instTT="Questa e' la tabella delle partizioni della tua macchina : "
+instT2="Inserire la partizione in cui montare lfs: [/dev/hdaX]"
+instSWAP="Possiedi una partizione da dedicare allo swap?"
+instSWAP1="Inserire la partizione per lo swap: [/dev/hdaY]"
+instSWAP2="Partizione di Swap pronta..."
+instSWAP3="Partizione non valida... condivido swap"
+instT3="La partizione selezionata e': "
+instT4="sei sicuro di continuare?"
+instT5="La partizione immessa non esiste"
+instTFP1="Sicurissimo che vuoi formattare la partizione "
+instTFP2="Assicurati prima che la partizione selezionata sia quella corretta.
+Perderai TUTTI i dati su tale partizione. Continuare?"
+FSsT="Scegli il tipo di File System. [DEFAULT == EXT3]\nDigita :\n1 ==> EXT3\n2 ==> EXT2\n3 ==> REISERFS\n"
+FSqT="Digitare un numero (1-3)"
+instTMT="monto la partizione in /mnt/lfs"
+instTMK="montata con successo!"
+instTMF="Impossibile montare "
+instTPA="Preparo l'ambiente per la compilazione"      
+instTPU="Inserire la password per l'utente lfs: "
+instTAPU="Aggiusto i permessi  per l'utente lfs"
+instTF="Login utente lfs...\nUna volta loggato lanciare lo script di login scrivendo '/tmp/lfs/bashlogin.sh'."
+#bashlogin.sh
+mT1="Per avviare la creazione del sistema temporaneo lanciare il comando: '/tmp/lfs/step1.sh'."
+#step1.sh
+SDT1="Disponi gia' di tutti i sorgenti di lfs 6.0?"
+SDTP="Inserisci il percorso della directory contenente i pacchetti: "
+SDTF="La directory non e' valida : "
+SDTF="La dir inserita e' "
+SCTP="Copia dei file in corso..."
+SDTW="Il programma provvedera' al download automatico\ndi tutti i sorgenti dal server: "
+SDTC="Download dei sorgenti completato..."
+SDCTK="controllo checksum su tutti i pacchetti in corso..."
+SDCTKK="checksum eseguito correttamente..."
+SDCTKP="ci sono dei problemi con il checksum dei sorgenti..."
+SDCTSC="COSTRUZIONE DEL SISTEMA TEMPORANEO\nInizio compilazione"
+STTF="FINE STEP 1\nScrivere 'exit' e quindi 'logout' per tornare all'utente root del sistema\nhost e quindi lanciare '/tmp/lfs/step2.sh'."
+#step2.sh
+STTDF="Per proseguire l'installazione lanciare lo step3 in questo modo: 'sh step3.sh'."
+#step3.sh
+STTPF="Adesso lanciare lo step 4 in questo modo: 'sh step4.sh'."
+#step4.sh
+STTWDC="Attendere il controllo delle directory con i sorgenti"
+STTFF="Procedere adesso con la compilazione lanciando lo step5 in questo modo: 'sh step5.sh'."
+#step5.sh
+STTCR="# Configurazione rete"
+STTCF="SISTEMA LFS INSTALLATO!!!\nAdesso scrivere 'logout' fino a che non tornate a root del sistema ospite\ndopo essere tornati a root del sistema ospite lanciare lo step6\nper inizializzare il vostro sistema con '/tmp/lfs/step6.sh'."
+#step6.sh
+STTNRS="### RIMOZIONE FILE DELLO SCRIPT ###"
+STTWP="Attendere prego..."
+STTBLS="Lo script provvedera' a creare una nuova entry nel vostro bootloader.\nSpecificare il bootloader presente sul vostro pc\n'G' per Grub\n'L' per Lilo\n'N' per ALTRO\n"
+STTDP="Inserire la partizione del sistema LFS (/dev/hdaX)"
+STTAR="Il sistema necessita di essere riavviato, premere INVIO per riavviare\nauatomaticamente, altrimenti scrivere 'no' e riavviare manualmente in seguito."
+SRAT="riavvio automatico"
+SRMT="riavviare manualmente"
+STTBC="E' necessario aggiornare il proprio boot loader prima\ndi poter utilizzare il sitema LFS\n"
+KERNMSG="Adesso e' necessario compilare il kernel...\nPer usare il file config di default dovete andare in\n'Load An Alternate Configuration File' e scrivere ./config\nSe volete editare il kernel a mano potete benissimo farlo senza\nnessun problema. Alla fine uscite e salvate il config appena creato.\n"
+OKTOCON="Premere Invio per continuare"

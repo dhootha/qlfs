@@ -1,0 +1,397 @@
+######### QLFS-Live ###########################
+#
+# QLFS-Live cd 0.1 2005
+#
+# Written by Marco Sciatta and Matteo Mattei 
+#
+# Version 0.1 alpha
+###############################################
+
+
+##################################################
+# 1. Set di colori 
+# 2. Parametri generali del wm
+# 3. Path dei file utilizzati 
+# 4. Settaggio degli stili di default e dei moduli
+# 5. Funzioni di inizio fine e restart
+# 6. Funzioni di utilita generale
+# 7. Definizione del mouse
+# 8. Tastiera e mouse bindings
+# 9. Opzioni dei moduli 
+
+
+###############################################
+#  Set di colori 
+###############################################
+# Per i menu  (la traslucenza necessita di una patch)
+#Colorset 0 fg White, bg #1a931a, Shadow Black 
+Colorset 0 fg White, bg #08b108, Shadow Black  
+#Colorset 1 fg White, bg Red, Shadow Black   
+Colorset 1 fg White, bg #8c1f1f, Shadow Black    
+#Colorset 2 fg Black, bg Red
+#Colorset 3 fg Black, bg Green
+Colorset 2 fg #8c1f1f, bg #1b5a1b
+Colorset 3 fg #1b5a1b, bg #8c1f1f
+Colorset 4 RootTransparent Buffer, Tint #1860a2 00,bg # 909090 
+#Verde rosso (palla)
+#Colorset 6 fg #63d158, bg #ff5756
+Colorset 5 fg White, bg #ff5756
+#Colorset 7 fg #ff5756, bg #63d158
+Colorset 6 fg White, bg White
+###################################################
+# Path dei file utilizzati 
+###################################################
+SetEnv fvwm_conf_dir $[HOME]/.fvwm2/qlfs
+SetEnv fvwm_themes_path $[fvwm_conf_dir]/Themes
+SetEnv fvwm_icons_path $[fvwm_conf_dir]/Icons
+#SetEnv fvwm_icons_path $[fvwm_conf_dir]/Icone
+SetEnv fvwm_icon16 $[fvwm_icons_path]/16x16
+SetEnv fvwm_icon32 $[fvwm_icons_path]/32x32
+SetEnv lfs_book $[HOME]/man
+SetEnv qlfs_script $[HOME]/qlfs
+
+###################################################
+# Stile del wm 
+###################################################
+DesktopSize 0x0
+DesktopName 0 Qlfs
+DesktopName 1 HomeDesk
+EdgeThickness 0 
+EdgeResistance 250 10 
+SetAnimation  10  -.01 0 .01 .03 .08 .18 .3 .45 .6 .75 .85 .90 .94 .97 .99 1.0
+SnapAttraction 5 SameType Screen 
+SnapGrid 3 3 
+IgnoreModifiers L25       
+ClickTime 350        
+MoveThreshold 3
+HideGeometryWindow Never
+#EwmhBaseStruts 62 90 55 62
+EwmhBaseStruts 0 90 55 0
+OpaqueMoveSize -1
+ColormapFocus FollowsFocus
+
+Style * BorderWidth 4, HandleWidth 3
+Style * Colorset 2, HilightColorset 3
+Style * ClickToFocus, EWMHPlacementUseWorkingArea
+Style * ResizeOpaque
+Style * Font "Shadow=0 1 SE:xft:Concielian:Bold:size=10 "
+Style * DecorateTransient
+Style * NoPPosition 
+Style * WindowShadeShrinks, WindowShadeSteps 100
+Style * Stick
+Style * NoIcon
+Style * NoIconTitle
+Style * StickyIconS
+
+#TitleStyle ActiveUp (HGradient 128 2 green  50  white 50 red  ) Inactive (HGradient 128 2 green 50 white 50 red )
+TitleStyle Active (HGradient 128 2 #8c1f1f  80  #fbf9f9 80 #8c1f1f ) Inactive (HGradient 128 2 #1b5a1b 50 #fbf9f9 50 #1b5a1b )
+
+
+
+MenuStyle * BorderWidth 3 
+MenuStyle * ActiveFore, MenuColorset 0,ActiveColorset 1
+MenuStyle * Hilight3DThickness -2
+MenuStyle * Animation
+MenuStyle * Font "Shadow=1 0 Se:xft:KacstArt:Normale:size=11"
+MenuStyle * Animation 
+MenuStyle * PopupDelayed, PopupDelay 150,PopdownDelayed,PopdownDelay 150
+MenuStyle * PopupOffset -2 95, TitleWarp
+MenuStyle * TitleUnderlines2,SeparatorsLong,TrianglesSolid
+MenuStyle * PopupAsSubMenu, HoldSubmenus
+MenuStyle * ItemFormat "%s%|%i%c%>%|"
+MenuStyle * HilightBack
+MenuStyle MenuQlfs BordersWidth 30
+ 
+
+ButtonStyle All InActive (Colorset 2 -- Flat )
+ButtonStyle All Active (Colorset 3 -- Flat)
+
+ButtonStyle 1 - Flat
+AddButtonStyle 1 Active (Pixmap $[fvwm_icon16]/qlfstux.png)
+AddButtonStyle 1 Inactive (Pixmap $[fvwm_icon16]/qlfstux.png)
+
+ButtonStyle 2 - MwnDecorMax
+AddButtonStyle 2 Active (Pixmap $[fvwm_icon16]/close_green.png)
+AddButtonStyle 2 Inactive (Pixmap $[fvwm_icon16]/close_red.png)
+ButtonStyle 4 - Flat
+AddButtonStyle 4 Active (Pixmap $[fvwm_icon16]/up_green.png)
+AddButtonStyle 4 Inactive (Pixmap $[fvwm_icon16]/up_red.png)
+ButtonStyle 6 - MwnDecorMin
+AddButtonStyle 6 Active (Pixmap $[fvwm_icon16]/down_green.png)
+AddButtonStyle 6 Inactive (Pixmap $[fvwm_icon16]/down_red.png)
+#ButtonStyle 6 4 50x65@1 35x35@1 65x35@1 50x65@0
+#ButtonStyle 4 4 50x35@1 65x65@0 35x65@0 50x35@1
+#ButtonStyle 2 17 20x20@1 30x20@1 50x40@1 70x20@1 80x20@1 80x30@0 60x50@0 80x70@1 80x80@0 #70x80@0 50x60@0 30x80@0 20x80@0 20x70@0 40x50@1 20x30@0 20x20@1
+#ButtonStyle 1 7 70x15@0 30x55@1 50x55@0 40x85@1 80x45@0 60x45@1 70x15@0
+
+Style "ButtonBar" NoTitle, !Handles, !Borders, Sticky, WindowListSkip, \
+  CirculateSkip, StaysOnTop, FixedPosition, FixedSize, !Iconifiable
+
+Style "FvwmIconMan" NoTitle, !Handles, !Borders, Sticky, WindowListSkip, \
+  CirculateSkip, StaysOnTop, FixedPosition, FixedSize, !Iconifiable
+
+Style "gkrellm" NoTitle, !Handles, !Borders, Sticky, WindowListSkip, \
+   CirculateSkip, StaysOnBottom, FixedPosition, !Iconifiable
+
+Style "Etermgost" !Title, !Borders, WindowListSkip, CirculateSkip, FixedPosition, \
+!Iconifiable, !Handles , Sticky , StaysOnBottom
+
+
+Style "Xpdf" EWMHMiniIconOverride, MiniIcon $[fvwm_icon16]/acroread.png
+Style "Eterm" EWMHMiniIconOverride, MiniIcon $[fvwm_icon16]/qlfsterm.png
+Style "xterm" EWMHMiniIconOverride, MiniIcon $[fvwm_icon16]/xconsole.png
+
+
+CursorStyle TITLE left_ptr 
+CursorStyle DEFAULT left_ptr
+CursorStyle MENU left_ptr
+CursorStyle ROOT left_ptr 
+##############################################
+# Funzioni 
+##############################################
+AddToFunc StartFunction
++ I Exec exec Esetroot -s -fit /root/.fvwm2/qlfs/Themes/background1.jpg
++ I Module FvwmAnimate 
++ I Module FvwmProxy
++ I Module FvwmButtons ButtonBar
+#+ Module FvwmPager
+#+ I Module FvwmIconMan
++ I Exec exec gkrellm -g -0+48
++ I GostEterm
++ I Exec exec Eterm --borderless --border-width 3 --buttonbar false --scrollbar 0  -c red --font-fx=none -f white --geometry 120x40+0+55 -t nIx
+
+
+
+DestroyFunc GostEterm
+AddToFunc GostEterm
++ I Exec exec Eterm --trans --borderless --border-width 0 --line-space 2 --buttonbar false --scrollbar 0  -c blue --font-fx=none -f blue --geometry 70x20-0-0  -n Etermgost --no-cursor  --bold-brightens-foreground --default-font-index 1 --exec iostat -k hda 1                        
+
+
+
+DestroyFuncion ToggleDecor
+AddToFunc ToggleDecor
++ I State 1 toggle
++ I Current (State 1) WindowStyle !Borders, NoTitle
++ I TestRc (NoMatch) WindowStyle Borders, Title
+
+
+DestroyFunc DeIconify      
+AddToFunc DeIconify
++ I Iconify
+
+
+AddToFunc Move-or-Raise         I Raise    
++                               M Move    
++                               D WindowShade   
+        
+AddToFunc Move-or-Iconify       I Raise    
++                               M Move
++                               D DeIconify
+
+AddToFunc Resize-or-Raise       I Raise
++                               M Resize
++                               D Lower
+
+AddToFunc Iconify-and-Raise     I DeIconify
++                               I Raise
+
+DestroyFunc Delete-or-Destroy
+AddToFunc Delete-or-Destroy H Nop
++        M Nop
++        C Delete
++         D Destroy
+################################################
+# Menu Principale
+################################################
+DestroyMenu MenuFvwmRoot
+AddToMenu MenuFvwmRoot "QLFS-Live Menu" Title
++ %$[fvwm_icon16]/kcmx.png%"&Programmi"  Popup "MenuPrograms"
++ %$[fvwm_icon16]/qlfstux.png%"&Qlfs"  Popup "EditaQlfsMenu"
++ %$[fvwm_icon16]/stock_book-closed.png%"L&FS"  Popup "LfsMenu"
++ ""   Nop
++ %$[fvwm_icon16]/suspend.png%"&Restart"  Restart
++ %$[fvwm_icon16]/exit.png%"&Quit"  Quit
++ ""   Nop
++ "R&eboot"  Exec exec reboot
++ %$[fvwm_icon16]/cancel.png%"&Shutdown"  Exec exec shutdown -h now
+#MenuStyle MenuQlfs MenuStyle * BorderWidth 23
+#Style "MenuQlfs" MenuQlfs MenuStyle * BorderWidth 23
+
+#MenuStyle "Mio" BorderWidth 21
+
+#Style MenuQlfs !Border
+DestroyMenu MenuQlfs
+AddToMenu MenuQlfs@$[fvwm_icon32]/logoMnu.png@^#ffffff^ 
++ %$[fvwm_icon16]/kcmx.png%"&Programs"  Popup "MenuPrograms"
++ %$[fvwm_icon16]/qlfstux.png%"&Qlfs"  Popup "EditaQlfsMenu"
++ %$[fvwm_icon16]/stock_book-closed.png%"L&FS"  Popup "LfsMenu"
++ ""   Nop
++ %$[fvwm_icon16]/gvim.png%"README file" Exec exec gvim /mnt/cdrom/README
++ %$[fvwm_icon16]/gvim.png%"INSTALL file" Exec exec gvim /mnt/cdrom/INSTALL
++ %$[fvwm_icon16]/gvim.png%"Version Note" Exec exec gvim /mnt/cdrom/isolinux/version.msg
++ ""  Nop
++ %$[fvwm_icon16]/suspend.png%"&Restart"  Restart
++ %$[fvwm_icon16]/exit.png%"&Quit"  Quit
++ ""   Nop
++ "R&eboot"  Exec exec reboot
++ %$[fvwm_icon16]/cancel.png%"&Shutdown"  Exec exec shutdown -h now
+
+######MENU QLFS
+DestroyMenu LfsMenu
+AddToMenu LfsMenu 
++ %$[fvwm_icon16]/acroread.png%"Lfs 6.0"  Exec exec xpdf $[lfs_book]/LFS-BOOK-6.0.pdf
++ %$[fvwm_icon16]/acroread.png%"Blfs 6.0"  Exec exec xpdf $[lfs_book]/blfs-book-6.0.pdf
+
+
+
+######MENU EDITAQLFSMENU
+DestroyMenu EditaQlfsMenu
+AddToMenu EditaQlfsMenu 
++ %$[fvwm_icon16]/qlfsterm.png%"Install.sh"  Exec exec gvim $[qlfs_script]/install.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Bashlogin.sh" Exec exec gvim $[qlfs_script]/bashlogin.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Step1.sh"  Exec exec gvim $[qlfs_script]/step1.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Step2.sh"  Exec exec gvim $[qlfs_script]/step2.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Step3.sh"    Exec exec gvim $[qlfs_script]/step3.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Step4.sh"    Exec exec gvim $[qlfs_script]/step4.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Step5.sh"    Exec exec gvim $[qlfs_script]/step5.sh
++ %$[fvwm_icon16]/qlfsterm.png%"Step6.sh"    Exec exec gvim $[qlfs_script]/step6.sh
++ ""   Nop
++ %$[fvwm_icon16]/qlfsterm.png%"lfs60"  Exec exec gvim $[qlfs_script]/lfs60
++ %$[fvwm_icon16]/qlfsterm.png%"lfs-utils"  Exec exec gvim $[qlfs_script]/lfs-utils.sh
++ %$[fvwm_icon16]/qlfsterm.png%"lfs-var"  Exec exec gvim $[qlfs_script]/lfs-var
+
+######MENU PROGRAMMI
+DestroyMenu MenuPrograms
+AddToMenu MenuPrograms
++ %$[fvwm_icon16]/acroread.png%"&Xpdf"  Exec exec xpdf
++ %$[fvwm_icon16]/gvim.png%"&Gvim"  Exec exec gvim
++ %$[fvwm_icon16]/qlfsterm.png%"&Eterm"  Exec exec Eterm -t nIx
++ %$[fvwm_icon16]/xconsole.png%"X&term"  Exec exec xterm
++ %$[fvwm_icon16]/gkrellm.png%"G&krellm"  Exec exec gkrellm 
+
+###########MENU FINESTRE
+DestroyMenu FinestraMenu
+AddToMenu FinestraMenu   "Finestra" Title
++ "Move"    Move
++ "Resize"   Resize
++ "ToggleDecor" ToggleDecor
++ "(De)Maximize"  Maximize
++ "(Un)Shade"   WindowShade
++ "(Un)Stick"   Stick
++ ""    Nop
++ "Cancel"   Delete
++ "Destroy"   Destroy
++ "Close"   Close
+
+
+
+################################################
+# MOUSE BINDING
+###############################################
+Mouse 1 R A Menu MenuFvwmRoot
+Mouse 3 R A Menu MenuFvwmRoot
+Mouse 2 R A WindowList
+
+Mouse 0 1 A Menu FinestraMenu
+Mouse 0 2 A Close
+Mouse 1 4 A Maximize 100 100
+Mouse 2 4 A Maximize 0 100
+Mouse 3 4 A Maximize 100 0
+Mouse 0 6 A Iconify
+
+Mouse 1 FS      A       Resize-or-Raise
+Mouse 1 T       A       Move-or-Raise
+Mouse 1 I       A       Move-or-Iconify
+Mouse 2 I       A       Move-or-Iconify
+Mouse 2 FST     A       Menu Window-Ops Nop
+Mouse 3 TSIF    A       RaiseLower
+Mouse 1 W       M       Move-or-Raise
+Mouse 1 W       4       Move-or-Raise
+Mouse 4 T N WindowShade True
+Mouse 5 T N WindowShade False
+Key Escape  A   M   SendToModule FvwmProxy ShowToggle
+Key F12  A A  All (AcceptFocus CurrentPage !Iconic !Shaded) DeIconify
+
+DestroyModuleConfig ButtonBar: *
+*ButtonBar: Font "xft:Sans:Bold:pixelsize=12:minspace=True:antialias=True"
+*ButtonBar: Geometry $[desk.width]x48+0+0
+*ButtonBar: Colorset 0
+#*ButtonBar: Rows 1
+#*ButtonBar: Padding 3 3
+*ButtonBar: Rows 1
+*ButtonBar: Columns 32
+#*ButtonBar: Columns 200
+#*ButtonBar: (1x2, Frame 0)
+*ButtonBar: (3x1, Frame 0, Icon $[fvwm_icon32]/mnuQLFS32.png, \
+        Action(Mouse 1) `Menu MenuQlfs Rectangle +48+48 -100m 0`)
+*ButtonBar: (3x1, Frame 0, Icon $[fvwm_icon32]/xpdf32.png, \
+        Action(Mouse 1) Exec exec xpdf )
+*ButtonBar: (3x1, Frame 0, Icon $[fvwm_icon32]/gvim32.png, \
+        Action(Mouse 1) Exec exec gvim )
+*ButtonBar: (3x1, Frame 0, Icon $[fvwm_icon32]/gkrellm32.png \
+        Action(Mouse 1) Exec exec gkrellm)
+*ButtonBar: (3x1, Frame 0, Icon $[fvwm_icon32]/termqlfs32.png, \
+        Action(Mouse 1) Exec exec Eterm -t nIx )
+*ButtonBar: (50x1,Frame -1, Swallow "FvwmIconMan" `FvwmIconMan`)
+#*ButtonBar: (4x1, Frame 1, Action (Mouse 1) DeIconify)
+#*ButtonBar:(1x1,Frame 0, "Nop")
+*ButtonBar: (12x1,Frame 0, Swallow "FvwmPager" `FvwmPager 0 1`)
+
+DestroyModuleConfig FvwmAnimate: *       
+*FvwmAnimate: Effect Zoom3D       
+*FvwmAnimate: Color #ff5756      
+*FvwmAnimate: Whidth 3 
+*FvwmAnimate: Delay 3
+*FvwmAnimate: Iterations 20
+
+
+*FvwmProxy: SendToModule FvwmProxy Hide
+*FvwmProxy: Font "xft:snap"
+*FvwmProxy: ProxyMove true
+
+DestroyModuleConfig FvwmPager: *
+Style "FvwmPager" Borders, Handles
+#*FvwmPager: Font none
+*FvwmPager: Font "xft:Bitstream Vera Sans Mono:style=Roman:size=9" 
+*FvwmPager: SmallFont none
+#*FvwmPager: Hilight lightgray 
+#*FvwmPager: NoDeskHilight
+#*FvwmPager: NoSeparators
+#*FvwmPager: Geometry $[barHeight]x80
+#*FvwmPager: Geometry 100x200
+*FvwmPager: Rows 0
+*FvwmPager: Columns 2
+*FvwmPager: Balloons            All
+*FvwmPager: BalloonYOffset      +2
+*FvwmPager: BalloonBorderWidth  1
+*FvwmPager: Colorset * 0
+*FvwmPager: HilightColorset * 1
+*FvwmPager: WindowColorsets * 1
+*FvwmPager: MiniIcons
+*FvwmPager: NoShapeLabels
+*FvwmPager: BalloonColorset * 0
+*FvwmPager: Window3DBorders
+*FvwmPager: SolidSeparators
+
+DestroyModuleConfig FvwmIconMan: *
+*FvwmIconMan: ManagerGeometry 1x1
+*FvwmIconMan: ButtonGeometry 24x23
+*FvwmIconMan: FocusAndSelectButton down
+*FvwmIconMan: FocusButton down
+*FvwmIconMan: IconButton down
+*FvwmIconMan: PlainButton down
+*FvwmIconMan: SelectButton down
+*FvwmIconMan: Action Mouse 0 N sendcommand Nop
+*FvwmIconMan: Action Mouse 1 N sendcommand "Iconify off", sendcommand RaiseLower, sendcommand FlipFocus
+*FvwmIconMan: Action Mouse 3 N sendcommand "Popup FinestraMenu Rectangle +$left+$top 0 -100m"
+*FvwmIconMan: Colorset 0
+*FvwmIconMan: ReliefThickness 1
+*FvwmIconMan: Font "xft:Bitstream Vera Sans Mono:style=Roman:size=10"
+*FvwmIconMan: FocusAndSelectColorset 3
+*FvwmIconMan: FocusColorset 3
+*FvwmIconMan: Resolution Page
+*FvwmIconMan: DrawIcons Always
+*FvwmIconMan: FollowFocus True
+*FvwmIconMan: UseWinList True
+*FvwmIconMan: ShowOnlyIcons False
+*FvwmIconMan: Title Qlfs-LiveCd

@@ -1,0 +1,1692 @@
+#!/bin/bash
+
+# Attenzione l'estenzione e' ".tar.bz2"
+# non c'e' bisogno del source.
+# tutti i file includono infatti lfs-var.
+#source ./lfs-var
+
+#DEBUG
+echo "Check: $check_control"
+echo "Stripping: $execute_stripping"
+echo "Partition lfs: $hdax"
+sleep 3
+#END DEBUG
+
+EXIT_SUCCESS=0 
+
+function binutils1_host()
+{
+	echo "binutils" > /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############################"
+	echo "# binutils-2.15.94.0.2.2 PASSO1"
+	echo "#############################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj binutils-2.15.94.0.2.2.tar.bz2 && \
+	cd binutils-2.15.94.0.2.2 && \
+	gmnv=`gcc --version | awk '/[0-9].[0-9].[0-9]/ {print $3}' | cut -b 1`
+	if [ $gmnv -ge "4" ]; then
+		patch -Np1 -i ../binutils-2.15.94.0.2.2-gcc4-1.patch
+	fi
+	mkdir ../binutils-build && \
+	cd ../binutils-build && \
+	../binutils-2.15.94.0.2.2/configure --prefix=/tools --disable-nls && \
+	make && \
+	make install && \
+	make -C ld clean && \
+	make -C ld LIB_PATH=/tools/lib && \
+	echo "binutils" >> /qlfs-debug
+}
+
+function gcc31_host()
+{
+	echo "gcc_1" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#########################"
+	echo "# gcc3.4.3-core - PASSO1"
+	echo "#########################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj gcc-3.4.3.tar.bz2 && cd gcc-3.4.3 && \
+	mkdir ../gcc-build && \
+	cd ../gcc-build && \
+	../gcc-3.4.3/configure --prefix=/tools \
+	--libexecdir=/tools/lib --with-local-prefix=/tools \
+	--disable-nls --enable-shared --enable-languages=c && \
+	make bootstrap && \
+	make install && \
+
+	ln -s gcc /tools/bin/cc && \ 
+	echo "gcc_1" >> /qlfs-debug
+}
+
+function linux_libc_headers_host()
+{
+	echo "linux_libc" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############################" && \
+	echo "# linux-2.6.11.2 libc headers" && \
+	echo "############################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj linux-libc-headers-2.6.11.2.tar.bz2 && \
+	cd linux-libc-headers-2.6.11.2 && \
+	cp -R include/asm-i386 /tools/include/asm && \
+	cp -R include/linux /tools/include && \
+	echo "linux_libc" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+
+
+function glibc_host() 
+{
+	echo "glib" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"######################"
+	echo "# glibc-2.3.4         "
+	echo "######################"$(echo $COLOR_CYAN)
+	cd $LFS"/sources" && \
+	tar xfj glibc-2.3.4.tar.bz2 && cd glibc-2.3.4 && \
+	#se il kernel e' 2.6.11
+        patch -Np1 -i ../glibc-2.3.4-fix_test-1.patch && \
+	mkdir ../glibc-build && \
+	cd ../glibc-build && \
+	../glibc-2.3.4/configure --prefix=/tools \
+        --disable-profile --enable-add-ons \
+        --enable-kernel=2.6.0 --with-binutils=/tools/bin \
+        --without-gd --with-headers=/tools/include \
+        --without-selinux && \
+	make && \
+	if [[ $check_control = "true" ]]
+	then 
+		#se il kernel e' del 2.6.11.x
+		# applicare la patch R.S.L.
+		#
+		echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		echo "# Make check in corso:  " && \
+		echo "########################"$(echo $COLOR_CYAN)
+	 	make check  		
+	fi
+	mkdir /tools/etc && \
+	touch /tools/etc/ld.so.conf && \
+	make install && \
+	if [[ $check_control = "true" ]]
+	then 
+		make localedata/install-locales
+	fi 
+	#installare i locates minini
+	echo "glib" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function toolchain_host()
+{
+
+	echo "chain" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############################" && \
+	echo "# SISTEMAZIONE DEI TOOLCHAIN" && \
+	echo "############################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	cd binutils-build && \
+	make -C ld install && \
+	cd $LFS"/sources" && 
+	rm -Rf binutils-build && \
+	rm -Rf binutils-2.15.94.0.2.2 && \
+	SPECFILE=`gcc --print-file specs` &&
+	sed 's@ /lib/ld-linux.so.2@ /tools/lib/ld-linux.so.2@g' \
+	$SPECFILE > tempspecfile &&
+	mv -f tempspecfile $SPECFILE &&
+	unset SPECFILE && \
+	rm -f /tools/lib/gcc/*/*/include/{pthread.h,bits/sigthread.h} && \
+	echo "chain" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function tcl_host()
+{
+	echo "tcl" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############" && \
+	echo "# Tcl-8.4.9 " && \
+	echo "############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj tcl8.4.9-src.tar.bz2 && \
+	cd tcl8.4.9 && \
+	cd unix && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	cd .. && \
+	export TCLPATH=`pwd` && \
+	echo "tclpathnoexpo: $TCLPATH" >> /qlfs-debug && \
+	ln -s tclsh8.4 /tools/bin/tclsh  && \
+	echo "tcl" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function expect_host()
+{
+	echo "exp" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###############" && \
+	echo "# Expect-5.43.0" && \
+	echo "###############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj expect-5.43.0.tar.bz2 && \
+	cd expect-5.43 && \
+	echo $TCLPATH >> /qlfs-debug && \
+	patch -Np1 -i ../expect-5.43.0-spawn-1.patch && \
+	./configure --prefix=/tools --with-tcl=/tools/lib --with-tclinclude=$TCLPATH --with-x=no && \
+	make && \
+	make SCRIPTS="" install && \
+	unset TCLPATH && \
+	echo "exp" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function dejagnu_host()
+{
+	echo "deja" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###############" && \
+	echo "# DejaGnu-1.4.4" && \
+	echo "###############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj dejagnu-1.4.4.tar.bz2 && \
+	cd dejagnu-1.4.4 && \
+	./configure --prefix=/tools && \
+	make install && \
+	echo "deja" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function gcc32_host()
+{
+	#Se si compila con ottimizzazione disattivare per gcc
+	echo "gcc3" >> /qlfs-debug
+	#set CC="gcc -B/usr/bin" && \
+	echo $(echo $COLOR_GREEN_LIGHT)"####################" && \
+	echo "# GCC-3.4.3- PASSO 2" && \
+	echo "####################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	rm -Rf gcc-3.4.3 gcc-build && \
+	#tar xfj gcc-core-3.4.1.tar.bz2 && \
+	#tar xfj gcc-g++-3.4.1.tar.bz2 && \
+	#tar xfj gcc-testsuite-3.4.1.tar.bz2 && \
+	tar xfj gcc-3.4.3.tar.bz2              && \
+	cd gcc-3.4.3 && \
+	patch -Np1 -i ../gcc-3.4.3-no_fixincludes-1.patch && \
+	patch -Np1 -i ../gcc-3.4.3-specs-2.patch && \
+	mkdir ../gcc-build && \
+	cd ../gcc-build && \
+	../gcc-3.4.3/configure --prefix=/tools \
+    --libexecdir=/tools/lib --with-local-prefix=/tools \
+    --enable-clocale=gnu --enable-shared \
+    --enable-threads=posix --enable-__cxa_atexit \
+    --enable-languages=c,c++ --disable-libstdcxx-pch && \
+	make && \
+	
+	if [[ $check_control = "true" ]]
+	then 
+		#controllo sulle pty
+		echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		echo "# Make check in corso:  " && \
+		echo "########################"$(echo $COLOR_CYAN)
+		make -k check  
+	fi
+	make install && \
+	echo "gcc3" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function binutils2_host()
+{
+	#se compilazione ottimizzata disattivare qui
+	echo "binu" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###############################" && \
+	echo "# Binutils-2.15.94.0.2.2-PASSO 2 " && \
+	echo "###############################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+
+	tar xfj binutils-2.15.94.0.2.2.tar.bz2 && \
+	
+####################################
+#######Prova eliminando binutils-build only#########
+	#rm -Rf binutils-build && \
+	cd binutils-2.15.94.0.2.2 && \
+	mkdir ../binutils-build && \
+	cd ../binutils-build && \
+	../binutils-2.15.94.0.2.2/configure --prefix=/tools \
+        --disable-nls --enable-shared --with-lib-path=/tools/lib && \
+	make && \
+	if [ $check_control = "true" ]
+	then
+		echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		echo "# Make check in corso:  " && \
+		echo "########################"$(echo $COLOR_CYAN)
+		echo 	
+		make check
+	fi
+	echo "pronto per la compilazione" && \
+	make install && \
+	make -C ld clean && \
+	make -C ld LIB_PATH=/usr/lib:/lib && \
+	echo "binu" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function gawk_host()
+{
+	echo "ga" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############" && \
+	echo "# Gawk-3.1.4" && \
+	echo "############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj gawk-3.1.4.tar.bz2 && \
+	cd gawk-3.1.4 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "ga" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function coreutils_host()
+{
+	echo "core" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#################" && \
+	echo "# Coreutils-5.2.1" && \
+	echo "#################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj coreutils-5.2.1.tar.bz2 && \
+	cd coreutils-5.2.1 && \
+	DEFAULT_POSIX2_VERSION=199209 ./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "core" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function bzip2_host()
+{
+	echo "bzi" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Bzip2-1.0.3" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj bzip2-1.0.3.tar.bz2 && \
+	cd bzip2-1.0.3 && \
+	make && \
+	make PREFIX=/tools install && \
+	echo "bzi" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function gzip_host()
+{
+	echo "gzi" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############" && \
+	echo "# Gzip-1.3.5" && \
+	echo "############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj gzip-1.3.5.tar.bz2 && \
+	cd gzip-1.3.5 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "gzi" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function diffutils_host()
+{
+	echo "diffi" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#################" && \
+	echo "# Diffutils-2.8.1" && \
+	echo "#################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj diffutils-2.8.1.tar.bz2 && \
+	cd diffutils-2.8.1 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "diffi" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function findutils_host()
+{
+	echo "fin" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##################" && \
+	echo "# Findutils-4.2.23" && \
+	echo "##################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj findutils-4.2.23.tar.bz2 && \
+	cd findutils-4.2.23 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "fin" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function make_host()
+{
+	echo "make" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Make-3.80" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj make-3.80.tar.bz2 && \
+	cd make-3.80 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "make" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function grep_host()
+{
+	echo "grep" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Grep-2.5.1a" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj grep-2.5.1a.tar.bz2 && \
+	cd grep-2.5.1a && \
+	./configure --prefix=/tools --disable-perl-regexp && \
+	make && \
+	make install && \
+	echo "grep" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function sed_host()
+{
+	echo "sed" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Sed-4.1.4" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj sed-4.1.4.tar.bz2 && \
+	cd sed-4.1.4 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "sed" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function gettext_host()
+{
+	echo "gettext" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###############" && \
+	echo "# Gettxt-0.14.3" && \
+	echo "###############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj gettext-0.14.3.tar.bz2 && \
+	cd gettext-0.14.3 && \
+	 ./configure --prefix=/tools --disable-libasprintf \
+    	--without-csharp && \
+	make && \
+	make install && \
+	echo "gettext" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function ncurses_host()
+{
+	echo "ncu" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Ncurses-5.4" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj ncurses-5.4.tar.bz2 && \
+	cd ncurses-5.4 && \
+	./configure --prefix=/tools --with-shared --without-debug --without-ada --enable-overwrite && \
+	make && \
+	make install && \
+	echo "ncu" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function patch_host()
+{
+	echo "patch" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Patch-2.5.4" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj patch-2.5.4.tar.bz2 && \
+	cd patch-2.5.4 && \
+	CPPFLAGS=-D_GNU_SOURCE ./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "patch" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function tar_host()
+{
+	echo "tar" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Tar-1.15.1" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj tar-1.15.1.tar.bz2 && \
+	cd tar-1.15.1 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "tar" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function texinfo_host()
+{
+	echo "texinf" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Texinfo-4.8" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj texinfo-4.8.tar.bz2 && \
+	cd texinfo-4.8 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "texinf" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function bash_host()
+{
+	echo "bash" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# Bash-3.0" && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj bash-3.0.tar.bz2 && \
+	cd bash-3.0 && \
+	patch -Np1 -i ../bash-3.0-avoid_WCONTINUED-1.patch && \
+	./configure --prefix=/tools --without-bash-malloc && \
+	make && \
+	make install && \
+	ln -s bash /tools/bin/sh && \
+	echo "bash" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function m4_host()
+{
+        echo "m4" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# M4-1.4.3" && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj m4-1.4.3.tar.bz2 && cd m4-1.4.3 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "m4" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function bison_host()
+{
+	echo "bison" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##############" && \
+	echo "# Bison-2.0   " && \
+	echo "##############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj bison-2.0.tar.bz2 && cd bison-2.0 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "bison" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function flex_host()
+{
+	echo "flex" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#############" && \
+	echo "# Flex-2.5.31" && \
+	echo "#############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj flex-2.5.31.tar.bz2 && cd flex-2.5.31 && \
+	patch -Np1 -i ../flex-2.5.31-debian_fixes-3.patch && \
+	touch doc/flex.1 && \
+	./configure --prefix=/tools && \
+	make && \
+	make install && \
+	echo "flex" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function utillinux_host()
+{
+	echo "utli_lin" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##################" && \
+	echo "# Util-linux-2.12q" && \
+	echo "##################"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj util-linux-2.12q.tar.bz2 && \
+	cd util-linux-2.12q && \
+	sed -i 's@/usr/include@/tools/include@g' configure && \
+	./configure && \
+	make -C lib && \
+	make -C mount mount umount && \
+	make -C text-utils more && \
+	cp mount/{,u}mount text-utils/more /tools/bin && \
+	echo "utli_lin" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function perl_host()
+{
+	echo "perl" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############" && \
+	echo "# Perl-5.8.6" && \
+	echo "############"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj perl-5.8.7.tar.bz2 && \
+	cd perl-5.8.7 && \
+	patch -Np1 -i ../perl-5.8.7-libc-1.patch && \
+	./configure.gnu --prefix=/tools -Dstatic_ext='IO Fcntl POSIX' && \
+	make perl utilities && \
+	cp perl pod/pod2man /tools/bin && \
+	mkdir -p /tools/lib/perl5/5.8.7 && \
+	cp -R lib/* /tools/lib/perl5/5.8.7 && \
+	echo "perl" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function udev_host()
+{
+	echo "udev" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# Udev-030" && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd $LFS"/sources" && \
+	tar xfj udev-030.tar.bz2 && cd udev-030 && \
+	sed -i 's@/sbin/udev@/tools/sbin/udev@g' udevstart.c && \
+	sed -i 's@/etc@/tools/etc@g' etc/udev/udev.conf.in && \
+	make prefix=/tools etcdir=/tools/etc && \
+	make DESTDIR=/tools udevdir=/dev install && \
+	cp ../udev-config-2.permissions \
+	/tools/etc/udev/permissions.d/00-lfs.permissions
+	cp ../udev-config-1.rules /tools/etc/udev/rules.d/00-lfs.rules && \
+	echo "udev" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function linux_libc_headers_lfs()
+{
+	echo $(echo $COLOR_GREEN_LIGHT)"###############" && \
+	echo "# Linux Headers" && \
+	echo "###############"$(echo $COLOR_CYAN) && \
+	echo "header2" >> /qlfs-debug
+	cd /sources && \
+	tar xfj linux-libc-headers-2.6.11.2.tar.bz2 && \
+	cd linux-libc-headers-2.6.11.2 && \
+	cp -R include/asm-i386 /usr/include/asm
+	cp -R include/linux /usr/include
+	chown -R root:root /usr/include/{asm,linux}
+	find /usr/include/{asm,linux} -type d -exec chmod 755 {} \;
+	find /usr/include/{asm,linux} -type f -exec chmod 644 {} \;
+	sleep 1 && \
+	echo "header2" >> /qlfs-debug
+}
+function manpage_lfs()
+{
+	echo "manpage" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###############" && \
+	echo "# Man Pages 2.01   " && \
+	echo "###############"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj man-pages-2.01.tar.bz2 && cd man-pages-2.01 && \
+	make install && \
+	sleep 1 && \
+	echo "manpage" >> /qlfs-debug && \
+	return $EXIT_SUCCESS
+}
+
+function glibc_lfs()
+{
+	#disattiva compilazione ottimizzata!!!
+	echo "glibclfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"########" && \
+	echo "# Glibc  " && \
+	echo "########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+
+	tar xfj glibc-2.3.4.tar.bz2 &&  cd glibc-2.3.4 && \
+        tar -xjvf ../glibc-linuxthreads-2.3.4.tar.bz2 && \
+	patch -Np1 -i ../glibc-2.3.4-rtld_search_dirs-1.patch && \
+        patch -Np1 -i ../glibc-2.3.4-fix_test-1.patch && \
+	patch -Np1 -i ../glibc-2.3.4-tls_assert-1.patch && \
+	mkdir ../glibc-build && \
+	cd ../glibc-build && \
+	../glibc-2.3.4/configure --prefix=/usr \
+    --disable-profile --enable-add-ons \
+    --enable-kernel=2.6.0 --libexecdir=/usr/lib/glibc && \
+	make && \
+	if [[ $check_control = "true" ]]
+	then 
+		echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		echo "# Make check in corso:  " && \
+		echo "########################"$(echo $COLOR_CYAN)
+		make check  
+	fi
+	touch /etc/ld.so.conf && \
+	make install && \
+	make localedata/install-locales && \
+	make -C ../glibc-2.3.4/linuxthreads/man && \
+	make -C ../glibc-2.3.4/linuxthreads/man install && \
+	echo "glibclfs" >> /qlfs-debug
+	return $EXIT_SUCCES
+}
+
+function toolchain_lfs()
+{
+	##NON TOCCARE LA RIGA IN PERL ##
+	echo "toolchainlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#######################" && \
+	echo "# Regolazione Toolchain" && \
+	echo "#######################"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	cd binutils-build && \
+	make -C ld INSTALL=/tools/bin/install install && \
+	cd /sources && rm -rf binutils-build binutils-2.15.94.0.2.2 && \
+	perl -pi -e 's@ /tools/lib/ld-linux.so.2@ /lib/ld-linux.so.2@g;'  -e 's@\*startfile_prefix_spec:\n@$_/usr/lib/@g;'  `gcc --print-file specs`  && \
+	echo "toolchainlfs" >> /qlfs-debug && \
+	return $EXIT_SUCCESS
+}
+
+function binutils_lfs()
+{
+	#disattivare compilazione ottimizzata
+	echo "binutilslfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Binutils " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj binutils-2.15.94.0.2.2.tar.bz2 && cd binutils-2.15.94.0.2.2 && \
+	mkdir ../binutils-build && \
+	cd ../binutils-build && \
+	../binutils-2.15.94.0.2.2/configure --prefix=/usr --enable-shared && \
+	make tooldir=/usr && \
+	if [ $check_control = "true" ]
+	then 
+		 echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		 echo "# Make check in corso:  " && \
+		 echo "########################"$(echo $COLOR_CYAN)
+		 make check  
+	fi
+	make tooldir=/usr install && \
+	 cp ../binutils-2.15.94.0.2.2/include/libiberty.h /usr/include && \
+	echo "binutilslfs" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function gcc_lfs()
+{
+	echo "gcclfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# GCC      " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj gcc-3.4.3.tar.bz2
+	cd gcc-3.4.3 && \
+	patch -Np1 -i ../gcc-3.4.3-no_fixincludes-1.patch && \
+	patch -Np1 -i ../gcc-3.4.3-linkonce-1.patch && \
+	sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in && \
+	mkdir ../gcc-build && \
+	cd ../gcc-build && \
+	../gcc-3.4.3/configure --prefix=/usr \
+    --libexecdir=/usr/lib --enable-shared \
+    --enable-threads=posix --enable-__cxa_atexit \
+    --enable-clocale=gnu --enable-languages=c,c++ && \
+	make && \
+	if [ $check_control = "true" ]
+	then 
+		echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		echo "# Make check in corso:  " && \
+		echo "########################"$(echo $COLOR_CYAN)
+		 make -k check 
+	fi
+	make install && \
+	ln -s ../usr/bin/cpp /lib && \
+	ln -s gcc /usr/bin/cc && \
+	echo "gcclfs" >> /qlfs-debug
+	return $EXIT_SUCCESS
+}
+
+function coreutils_lfs()
+{
+	echo "coreutilslfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Coreutils" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj coreutils-5.2.1.tar.bz2 && cd coreutils-5.2.1 && \
+	patch -Np1 -i ../coreutils-5.2.1-uname-2.patch && \
+	patch -Np1 -i ../coreutils-5.2.1-suppress_uptime_kill_su-1.patch && \
+	DEFAULT_POSIX2_VERSION=199209 ./configure --prefix=/usr && \
+	make && \
+	echo "dummy1:x:1000:" >> /etc/group && \
+	echo "dummy2:x:1001:dummy" >> /etc/group && \
+	echo "dummy:x:1000:1000:::/bin/bash" >> /etc/passwd && \
+	if [ $check_control = "true" ]
+	then
+        	echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+        	echo "# Make check in corso:  " && \
+        	echo "########################"$(echo $COLOR_CYAN)
+		make NON_ROOT_USERNAME=dummy check-root 
+	fi
+	sed -i '/dummy/d' /etc/passwd /etc/group && \
+	make install && \
+	#mv /usr/bin/{[,basename,cat,chgrp,chmod,chown,cp,dd,df} /bin && \
+	#mv /usr/bin/{date,echo,false,head,hostname,install,ln} /bin && \
+	#mv /usr/bin/{ls,mkdir,mknod,mv,pwd,rm,rmdir,sync} /bin && \
+	#mv /usr/bin/{sleep,stty,test,touch,true,uname} /bin && \
+	#mv /usr/bin/chroot /usr/sbin  && \
+	#ln -s ../../bin/install /usr/bin && \
+	mv -v /usr/bin/{cat,chgrp,chmod,chown,cp,date,dd,df,echo} /bin && \
+	mv -v /usr/bin/{false,hostname,ln,ls,mkdir,mknod,mv,pwd,rm} /bin && \
+	mv -v /usr/bin/{rmdir,stty,sync,true,uname} /bin && \
+	mv -v /usr/bin/chroot /usr/sbin && \
+	mv -v /usr/bin/{head,sleep} /bin && \
+	echo "coreutilslfs" >> /qlfs-debug && \
+	return $EXIT_SUCCESS
+}
+
+function zlib_lfs()
+{
+	echo "zliblfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Zlib     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj zlib-1.2.3.tar.bz2 && cd zlib-1.2.3 && \
+	#patch -Np1 -i ../zlib-1.2.2-security_fix-1.patch && \
+	./configure --prefix=/usr --shared --libdir=/lib && \
+	make && \
+	make install && \
+        rm /lib/libz.so && \
+	ln -sf ../../lib/libz.so.1.2.3 /usr/lib/libz.so && \
+	make clean && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	chmod 644 /usr/lib/libz.a && \
+	
+	echo "zliblfs" >> /qlfs-debug &&\
+	return $EXIT_SUCCESS
+}
+
+function mktemp_lfs()
+{
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Mktemp   " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	echo "mktmplfs" >> /qlfs-debug
+	cd /sources && \
+	tar xfj mktemp-1.5.tar.bz2 && cd mktemp-1.5 && \
+	patch -Np1 -i ../mktemp-1.5-add_tempfile-2.patch && \
+	./configure --prefix=/usr --with-libc && \
+	make && \
+	make install && \
+	make install-tempfile && \
+	echo "mktmplfs" >> /qlfs-debug
+}
+
+function iana_lfs()
+{
+	echo "iena" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Iana     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj iana-etc-1.04.tar.bz2 && cd iana-etc-1.04 && \
+	make && \
+	make install && \
+	echo "iena" >> /qlfs-debug
+}
+
+function findutils_lfs()
+{
+	echo "findlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Findutils" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj findutils-4.2.23.tar.bz2 && cd findutils-4.2.23 && \
+	./configure --prefix=/usr --libexecdir=/usr/lib/locate \
+	        --localstatedir=/var/lib/locate && \
+	make && \
+	make install && \
+	echo "findlfs" >> /qlfs-debug
+}
+
+function gawk_lfs()
+{
+	echo "gawklfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Gawk     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj gawk-3.1.4.tar.bz2 && cd gawk-3.1.4 && \
+	./configure --prefix=/usr --libexecdir=/usr/lib && \
+	make && \
+	make install && \
+	echo "gawklfs" >> /qlfs-debug
+}
+
+function ncurses_lfs()
+{
+	echo "ncurseslfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Ncurses  " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj ncurses-5.4.tar.bz2 && cd ncurses-5.4 && \
+	./configure --prefix=/usr --with-shared --without-debug && \
+	make && \
+	make install && \
+	chmod 755 /usr/lib/*.5.4 && \
+	chmod 644 /usr/lib/libncurses++.a && \
+	mv /usr/lib/libncurses.so.5* /lib && \
+	ln -sf ../../lib/libncurses.so.5 /usr/lib/libncurses.so && \
+	ln -sf libncurses.so /usr/lib/libcurses.so && \
+	echo "ncurseslfs" >> /qlfs-debug
+}
+
+function readline_lfs()
+{
+	echo "readline_lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##############" && \
+	echo "# Readline      " && \
+	echo "##############"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj readline-5.0.tar.bz2 && cd readline-5.0 && \
+	patch -Np1 -i ../readline-5.0-fixes-1.patch && \
+	./configure --prefix=/usr --libdir=/lib && \
+	make SHLIB_XLDFLAGS=-lncurses && \
+	make install && \
+	chmod 755 /lib/lib{readline,history}.so* && \
+	mv /lib/lib{readline,history}.a /usr/lib && \
+	rm /lib/lib{readline,history}.so &&\
+	ln -sf ../../lib/libreadline.so.5 /usr/lib/libreadline.so &&\
+	ln -sf ../../lib/libhistory.so.5 /usr/lib/libhistory.so && \
+	echo "readline_lfs" >> /qlfs-debug
+}
+
+function vim_lfs()
+{
+	echo "vimlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Vim      " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj vim-6.3.tar.bz2 && \
+	tar xfj vim-6.3-lang.tar.bz2 && \
+	cd vim63 && \
+	echo '#define SYS_VIMRC_FILE "/etc/vimrc"' >> src/feature.h && \
+#	echo '#define SYS_GVIMRC_FILE "/etc/gvimrc"' >> src/feature.h && \
+	#patch -Np1 -i ../vim-6.3-security_fix-1.patch && \
+	patch -Np1 -i ../vim-6.3-security_fix-2.patch && \
+	./configure --prefix=/usr --enable-multibyte && \
+	make && \
+	make install && \
+	ln -s vim /usr/bin/vi && \
+	cat > /etc/vimrc << "EOF"
+" Begin /etc/vimrc
+set nocompatible
+set backspace=2
+syntax on
+if (&term == "iterm") || (&term == "putty")
+  set background=dark
+endif
+" End /etc/vimrc
+EOF
+	echo "vimlfs" >> /qlfs-debug
+}
+
+function m4_lfs()
+{
+	echo "m4lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# M4       " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj m4-1.4.3.tar.bz2 && cd m4-1.4.3 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "m4lfs" >> /qlfs-debug
+}
+
+function bison_lfs()
+{
+	echo "bisonlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Bison    " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj bison-2.0.tar.bz2 && cd bison-2.0 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "bisonlfs" >> /qlfs-debug
+}
+
+function less_lfs()
+{
+	echo "lesslfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Less     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj less-382.tar.bz2 && cd less-382 && \
+	./configure --prefix=/usr --bindir=/bin --sysconfdir=/etc && \
+	make && \
+	make install && \
+	echo "lesslfs" >> /qlfs-debug
+}
+
+function groff_lfs()
+{
+	echo "grofflfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Groff     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj groff-1.19.1.tar.bz2 && cd groff-1.19.1 && \
+	#Cambiare il tipo di pagina letter o A4
+	PAGE=A4 ./configure --prefix=/usr && \
+	make && \
+	make install && \
+	ln -s soelim /usr/bin/zsoelim && \
+	ln -s eqn /usr/bin/geqn && \
+	ln -s tbl /usr/bin/gtbl && \
+	echo "grofflfs" >> /qlfs-debug
+}
+
+function sed_lfs()
+{
+	echo "sedlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Sed      " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj sed-4.1.4.tar.bz2 && cd sed-4.1.4 && \
+	sed -i 's@/doc@&/sed-4.1.4@' doc/Makefile.in && \
+	./configure --prefix=/usr --bindir=/bin && \
+	make && \
+	make install && \
+	echo "sedlfs" >> /qlfs-debug
+}
+
+function flex_lfs()
+{
+	echo "flexlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Flex     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj flex-2.5.31.tar.bz2 && cd flex-2.5.31 && \
+	patch -Np1 -i ../flex-2.5.31-debian_fixes-3.patch && \
+	touch doc/flex.1 && \
+	./configure --prefix=/usr && 
+	make && 
+	make install && \
+	ln -s libfl.a /usr/lib/libl.a && \
+	cat > /usr/bin/lex << "EOF"
+#!/bin/sh
+# Begin /usr/bin/lex
+
+exec /usr/bin/flex -l "$@"
+
+# End /usr/bin/lex
+EOF
+	chmod 755 /usr/bin/lex && \
+	echo "flexlfs" >> /qlfs-debug
+}
+
+function gettext_lfs()
+{
+	echo "gettxtlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Gettext  " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj gettext-0.14.3.tar.bz2 && cd gettext-0.14.3 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "gettxtlfs" >> /qlfs-debug
+}
+
+function inetutils_lfs()
+{
+	echo "inetlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Inetutils" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xjf inetutils-1.4.2.tar.bz2 && cd inetutils-1.4.2 && \
+	patch -Np1 -i ../inetutils-1.4.2-kernel_headers-1.patch && \
+	patch -Np1 -i ../inetutils-1.4.2-no_server_man_pages-1.patch && \
+	./configure --prefix=/usr --libexecdir=/usr/sbin \
+	    --sysconfdir=/etc --localstatedir=/var \
+	    --disable-logger --disable-syslogd \
+	    --disable-whois --disable-servers && \
+	make && \
+	make install && \
+	mv /usr/bin/ping /bin && \
+	echo "inetlfs" >> /qlfs-debug
+}
+
+function iproute_lfs()
+{
+	echo "iproute_lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##############" && \
+	echo "# Ip Route     " && \
+	echo "##############"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj iproute2-2.6.11-050330.tar.bz2 && cd iproute2-2.6.11 && \
+	#patch -Np1 -i ../iproute2-2.6.11_050330-remove_db-1.patch && \
+	sed -i '/^TARGETS/s@arpd@@g' misc/Makefile && \
+	./configure && \
+	make SBINDIR=/sbin && \
+	make SBINDIR=/sbin install && \
+	echo "iproute_lfs" >> /qlfs-debug
+}
+
+function perl_lfs()
+{
+	echo "perllfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Perl     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj perl-5.8.7.tar.bz2 && cd perl-5.8.7 && \
+	./configure.gnu --prefix=/usr -Dpager="/bin/less -isR" && \
+	make && \
+	echo "127.0.0.1 localhost $(hostname)" > /etc/hosts && \
+	if [[ $check_control = "true" ]]
+	then 
+		 echo $(echo $COLOR_GREEN_LIGHT)"########################" && \
+		 echo "# Make check in corso:  " && \
+		 echo "########################"$(echo $COLOR_CYAN)
+		 make test  
+	fi
+	make install && \
+	echo "perllfs" >> /qlfs-debug
+}
+
+function texinfo_lfs()
+{
+	echo "textinfo" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Texinfo  " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj texinfo-4.8.tar.bz2 && cd texinfo-4.8 && \
+	patch -Np1 -i ../texinfo-4.8-tempfile_fix-1.patch && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	make TEXMF=/usr/share/texmf install-tex && \
+	cd /usr/share/info && \
+	rm dir && \
+	for f in *
+	do install-info $f dir 2>/dev/null
+	done
+	echo "textinfo" >> /qlfs-debug
+}
+
+function autoconf_lfs()
+{
+	echo "autocnflfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Autoconf " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj autoconf-2.59.tar.bz2 && cd autoconf-2.59 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "autocnflfs" >> /qlfs-debug
+}
+
+function automake_lfs()
+{
+	echo "automakelfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Automake " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj automake-1.9.5.tar.bz2 && cd automake-1.9.5 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "automakelfs" >> /qlfs-debug
+}
+
+function bash_lfs()
+{
+	echo "bashlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Bash     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj bash-3.0.tar.bz2 && cd bash-3.0 && \
+	patch -Np1 -i ../bash-3.0-fixes-3.patch && \
+	patch -Np1 -i ../bash-3.0-avoid_WCONTINUED-1.patch && \
+	./configure --prefix=/usr --bindir=/bin \
+	    --without-bash-malloc --with-installed-readline && \
+	make && \
+	make install && \
+	echo "bashlfs" >> /qlfs-debug
+}
+
+function file_lfs()
+{
+	echo "filelfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# File    " && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj file-4.13.tar.bz2 && cd file-4.13 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "filelfs" >> /qlfs-debug
+}
+
+function libtool_lfs()
+{
+	echo "libtoolfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# Libtool " && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj libtool-1.5.14.tar.bz2 && cd libtool-1.5.14 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "libtoolfs" >> /qlfs-debug
+}
+
+function bzip2_lfs()
+{
+	echo "bzip2lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# Bzip2   " && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj bzip2-1.0.3.tar.bz2 && cd bzip2-1.0.3 && \
+	patch -Np1 -i ../bzip2-1.0.3-install_docs-1.patch && \
+	patch -Np1 -i ../bzip2-1.0.3-bzgrep_security-1.patch && \	
+	make -f Makefile-libbz2_so && \
+	make clean && \
+	make && \
+	make install && \
+	cp bzip2-shared /bin/bzip2 && \
+	cp -a libbz2.so* /lib && \
+	ln -s ../../lib/libbz2.so.1.0 /usr/lib/libbz2.so && \
+	rm /usr/bin/{bunzip2,bzcat,bzip2} && \
+	ln -s bzip2 /bin/bunzip2 && \
+	ln -s bzip2 /bin/bzcat && \
+	echo "bzip2lfs" >> /qlfs-debug
+}
+
+function diffutils_lfs()
+{
+	echo "difflfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Diffutils" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj diffutils-2.8.1.tar.bz2 && cd diffutils-2.8.1 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "difflfs" >> /qlfs-debug
+}
+
+function kbd_lfs()
+{
+	echo "kbdlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Kbd      " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj kbd-1.12.tar.bz2 && cd kbd-1.12 && \
+	./configure && \
+	make && \
+	make install && \
+	echo "kbdlfs" >> /qlfs-debug
+}
+
+function e2fs_lfs()
+{
+	echo "e2lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# E2fsprogs" && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj e2fsprogs-1.37.tar.bz2 && cd e2fsprogs-1.37 && \
+	sed -i -e 's/-DTEST/$(ALL_CFLAGS) &/' lib/e2p/Makefile.in && \
+	mkdir build && \
+ 	cd build && \
+	../configure --prefix=/usr --with-root-prefix="" \
+	    --enable-elf-shlibs --disable-evms && \
+	make && \
+	make install && \
+	make install-libs && \
+	echo "e2lfs" >> /qlfs-debug
+}
+
+function grep_lfs()
+{
+	echo "greplfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Grep     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj grep-2.5.1a.tar.bz2 && cd grep-2.5.1a && \
+	./configure --prefix=/usr --bindir=/bin  && \
+	make && \
+	make install && \
+	echo "greplfs" >> /qlfs-debug
+}
+
+function grub_lfs()
+{
+	#disattivare compilazione ottimizzata
+	echo "grublfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Grub     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj grub-0.96.tar.bz2 && cd grub-0.96 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	mkdir /boot/grub && \
+	cp /usr/lib/grub/i386-pc/stage* /boot/grub && \
+	echo "grublfs" >> /qlfs-debug
+}
+
+function gzip2_lfs()
+{
+	echo "gzi2lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Gzip     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj gzip-1.3.5.tar.bz2 && cd gzip-1.3.5 && \
+	patch -Np1 -i ../gzip-1.3.5-security_fixes-1.patch && \
+	./configure --prefix=/usr && \
+	sed -i 's@"BINDIR"@/bin@g' gzexe.in && \
+	make && \
+	make install && \
+	mv /usr/bin/gzip /bin && \
+	rm /usr/bin/{gunzip,zcat} && \
+	ln -s gzip /bin/gunzip && \
+	ln -s gzip /bin/zcat && \
+	ln -s gzip /bin/compress && \
+	ln -s gunzip /bin/uncompress && \
+	echo "gzi2lfs" >> /mio
+}
+
+function hot_lfs()
+{
+	echo "hotpluglfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# Hotplug " && \
+	echo "#########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj hotplug-2004_09_23.tar.bz2 && cd hotplug-2004_09_23 && \
+	make install && \
+ 	cp etc/hotplug/pnp.distmap /etc/hotplug && \
+	rm -rf /etc/init.d && \
+	rm -f /etc/hotplug/net.agent && \
+	mkdir /lib/firmware && \
+	echo "hotpluglfs" >> /qlfs-debug
+}
+
+
+function man_lfs()
+{
+	echo "manlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Man      " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj man-1.5p.tar.bz2 && cd man-1.5p && \
+	
+	sed -i 's@-is@&R@g' configure && \
+	sed -i 's@MANPATH./usr/man@#&@g' src/man.conf.in && \
+	./configure -confdir=/etc && \
+	make && \
+	make install && \
+	echo "manlfs" >> /qlfs-debug
+}
+
+function make_lfs()
+{
+	echo "makelfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Make     " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj make-3.80.tar.bz2 && cd make-3.80 && \
+	./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "makelfs" >> /qlfs-debug
+}
+
+function mod_lfs()
+{
+	echo "modlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Modutils " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj module-init-tools-3.1.tar.bz2 && cd module-init-tools-3.1 && \
+	touch modprobe.conf.5 && \
+	./configure --prefix="" --enable-zlib && \
+	# This line is not in the english document!!
+	#make DOCBOOKTOMAN="" && \
+	make && \
+	make install && \
+	echo "modlfs" >> /qlfs-debug
+}
+
+function patch_lfs()
+{
+	echo "patchlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Patch    " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj patch-2.5.4.tar.bz2 && cd patch-2.5.4 && \
+	CPPFLAGS=-D_GNU_SOURCE ./configure --prefix=/usr && \
+	make && \
+	make install && \
+	echo "patchlfs" >> /qlfs-debug
+}
+
+function proc_lfs()
+{
+	echo "proclfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Procps   " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj procps-3.2.5.tar.bz2 && cd procps-3.2.5 && \
+	make && \
+	make install && \
+	echo "proclfs" >> /qlfs-debug
+}
+
+function psmisc_lfs()
+{
+	echo "psmisclfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Psmisc   " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj psmisc-21.6.tar.bz2 && cd psmisc-21.6 && \
+	./configure --prefix=/usr --exec-prefix="" && \
+	make && \
+	make install && \
+	mv /bin/pstree* /usr/bin && \
+	ln -s killall /bin/pidof && \
+	echo "psmisclfs" >> /qlfs-debug
+}
+
+function shadow_lfs()
+{
+	echo "shadowlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Shadow   " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj shadow-4.0.9.tar.bz2 && cd shadow-4.0.9 && \
+	./configure --libdir=/lib --enable-shared && \
+	#echo '#define HAVE_SETLOCALE 1' >> config.h && \
+	#sed -i '/extern char/d' libmisc/xmalloc.c && \
+	sed -i 's/groups$(EXEEXT) //' src/Makefile && \ 
+	sed -i '/groups/d' man/Makefile && \
+
+	make && \
+	make install && \
+	cp etc/{limits,login.access} /etc && \
+	#cp etc/login.defs.linux /etc/login.defs
+	sed -e's@#MD5_CRYPT_ENAB.no@MD5_CRYPT_ENAB yes@' \
+    -e 's@/var/spool/mail@/var/mail@' \
+    etc/login.defs.linux > /etc/login.defs && \
+	mv /usr/bin/passwd /bin && \
+	mv /lib/libshadow.*a /usr/lib	&& \
+	rm /lib/libshadow.so && \
+	ln -sf ../../lib/libshadow.so.0 /usr/lib/libshadow.so && \
+	mkdir /etc/default && \
+        pwconv && \
+	grpconv && \
+	clear && \
+	echo $(echo $COLOR_GREEN_LIGHT)"Set root password now!"$(echo $REPLACE) && \
+	passwd root && \
+	echo "shadowlfs" >> /qlfs-debug
+}
+
+function syslo_lfs()
+{
+	echo "syslfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Sysklogd " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj sysklogd-1.4.1.tar.bz2 && cd sysklogd-1.4.1 && \
+	patch -Np1 -i ../sysklogd-1.4.1-fixes-1.patch && \
+	make && \
+	make install && \
+	cat > /etc/syslog.conf << "EOF"
+# Begin /etc/syslog.conf
+
+auth,authpriv.* -/var/log/auth.log
+*.*;auth,authpriv.none -/var/log/sys.log
+daemon.* -/var/log/daemon.log
+kern.* -/var/log/kern.log
+mail.* -/var/log/mail.log
+user.* -/var/log/user.log
+*.emerg *
+
+# log the bootscript output:
+local2.* -/var/log/boot.log
+
+# End /etc/syslog.conf
+EOF
+	echo "syslfs" >> /qlfs-debug
+}
+
+function sysvinit_lfs()
+{
+	echo "sysvinit" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Sysvinit " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj sysvinit-2.86.tar.bz2 && cd sysvinit-2.86 && \
+	sed -i 's@Sending processes@& started by init@g' \
+	    src/init.c
+	make -C src && \
+	make -C src install && \
+	cat > /etc/inittab << "EOF"
+# Begin /etc/inittab
+
+id:3:initdefault:
+
+si::sysinit:/etc/rc.d/init.d/rc sysinit
+
+l0:0:wait:/etc/rc.d/init.d/rc 0
+l1:S1:wait:/etc/rc.d/init.d/rc 1
+l2:2:wait:/etc/rc.d/init.d/rc 2
+l3:3:wait:/etc/rc.d/init.d/rc 3
+l4:4:wait:/etc/rc.d/init.d/rc 4
+l5:5:wait:/etc/rc.d/init.d/rc 5
+l6:6:wait:/etc/rc.d/init.d/rc 6
+
+ca:12345:ctrlaltdel:/sbin/shutdown -t1 -a -r now
+
+su:S016:once:/sbin/sulogin
+
+1:2345:respawn:/sbin/agetty -I '\033(K' tty1 9600
+2:2345:respawn:/sbin/agetty -I '\033(K' tty2 9600
+3:2345:respawn:/sbin/agetty -I '\033(K' tty3 9600
+4:2345:respawn:/sbin/agetty -I '\033(K' tty4 9600
+5:2345:respawn:/sbin/agetty -I '\033(K' tty5 9600
+6:2345:respawn:/sbin/agetty -I '\033(K' tty6 9600
+
+# End /etc/inittab
+EOF
+	echo "sysvinit" >> /qlfs-debug
+}
+
+function tar_lfs()
+{
+	echo "tarlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"###########" && \
+	echo "# Tar      " && \
+	echo "###########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj tar-1.15.1.tar.bz2 && cd tar-1.15.1 && \
+	patch -Np1 -i ../tar-1.15.1-sparse_fix-1.patch && \
+	./configure --prefix=/usr --bindir=/bin --libexecdir=/usr/sbin && \
+	make && \
+	make install && \
+	echo "tarlfs" >> /qlfs-debug
+}
+
+function udev_lfs()
+{
+	echo "udev_lfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############" && \
+	echo "# Udev      " && \
+	echo "############"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj udev-056.tar.bz2 && cd udev-056 && \
+	make udevdir=/dev && \
+	make udevdir=/dev install && \
+	#cp ../udev-config-3.rules /etc/udev/rules.d/25-lfs.rules && \
+	cp ../udev-config-4.rules /etc/udev/rules.d/25-lfs.rules && \
+	/sbin/udevstart
+       
+	echo "udev_lfs" >> /qlfs-debug
+}
+
+function util_lfs()
+{
+	echo "utillfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"############" && \
+	echo "# Util-linux" && \
+	echo "############"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj util-linux-2.12q.tar.bz2 && cd util-linux-2.12q && \
+	sed -i 's@etc/adjtime@var/lib/hwclock/adjtime@g' \
+        hwclock/hwclock.c
+	mkdir -p /var/lib/hwclock
+	patch -Np1 -i ../util-linux-2.12q-cramfs-1.patch && \
+	patch -Np1 -i ../util-linux-2.12q-umount_fix-1.patch && \
+	./configure && \
+	make HAVE_KILL=yes HAVE_SLN=yes && \
+	make HAVE_KILL=yes HAVE_SLN=yes install && \
+	mv /usr/bin/logger /bin && \
+	echo "utillfs" >> /qlfs-debug
+}
+
+function bootscript_lfs()
+{
+	echo "bootscript" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#################" && \
+	echo "# LFS-Bootscripts" && \
+	echo "#################"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfj lfs-bootscripts-3.2.1.tar.bz2 && cd lfs-bootscripts-3.2.1 && \
+	make install && \
+	sleep 2 && \
+	echo "bootscript" >> /qlfs-debug
+}
+
+function scriptclock_lfs()
+{
+	echo "scriptclklfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##################" && \
+	echo "# Script Setclock " && \
+	echo "##################"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	cat > /etc/sysconfig/clock << "EOF"
+# Begin /etc/sysconfig/clock
+UTC=1
+# End /etc/sysconfig/clock
+EOF
+	sleep 2 &&\
+	echo "scriptclklfs" >> /qlfs-debug
+}
+
+function openssl_lfs()
+{
+	echo "openssllfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"##########" && \
+	echo "# OpenSSl " && \
+	echo "##########"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfz openssl-0.9.7e.tar.gz && cd openssl-0.9.7e && \
+	sed 's/^passwd/openssl-passwd/' doc/apps/passwd.pod \
+    > doc/apps/openssl-passwd.pod && \
+        rm doc/apps/passwd.pod && \
+	mv doc/crypto/{,openssl_}threads.pod && \
+ 	./config --openssldir=/etc/ssl --prefix=/usr shared && \
+	sed -i 's%SHLIBDIRS= fips crypto ssl%SHLIBDIRS= crypto ssl%g' Makefile && \
+	make MANDIR=/usr/share/man && \
+	make MANDIR=/usr/share/man install && \
+	cp -r certs /etc/ssl && \
+	echo "openssllf" >> /qlfs-debug
+}
+
+function wget_lfs()
+{
+        echo "wgetlfs" >> /qlfs-debug
+	echo $(echo $COLOR_GREEN_LIGHT)"#######" && \
+	echo "# Wget " && \
+	echo "#######"$(echo $COLOR_CYAN) && \
+	cd /sources && \
+	tar xfz wget-1.9.1.tar.gz && cd wget-1.9.1 && \
+	./configure --with-ssl=/usr/openssl && \       
+	make && \
+	make install && \
+	echo "wgetlfs" >> /qlfs-debug
+}
+
+function kernel_lfs()
+{
+	clear && \
+	echo $(echo $COLOR_GREEN_LIGHT)"###################" && \
+	echo "# Installing Kernel" && \
+	echo "###################"$(echo $COLOR_CYAN) && \
+	echo "" && \
+	cd /usr/src && \
+	tar xfj /sources/linux-2.6.11.12.tar.bz2 && \
+#	ln -s linux-2.6.11.12 linux && \
+	cd linux-2.6.11.12 && \
+	make mrproper && \
+#	sed -i 's@/sbin/hotplug@/bin/true@' kernel/kmod.c && \
+	mv /defconfig ./config && \	
+	make menuconfig && \
+	make && \
+	make modules_install && \
+	cp arch/i386/boot/bzImage /boot/lfskernel-2.6.11.12 && \
+	cp System.map /boot/System.map-2.6.11.12 && \
+	cp .config /boot/config-2.6.11.12 && \
+	echo "" && \
+	clear && \
+	echo "kernel ok " >> /qlfs-debug
+}

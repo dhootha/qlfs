@@ -1,0 +1,157 @@
+#!/bin/bash
+#PROVA#FP
+
+#####################
+# VARIABILI GLOBALI #
+#####################
+# 
+# COLORI:
+#########
+COLOR_WHITE=" -e \E[1;37m"
+COLOR_GRAY_LIGHT=" -e \E[0;37m"
+COLOR_GRAY_DARK=" -e \E[1;30m"
+COLOR_BLUE=" -e \E[0;34m"
+COLOR_BLUE_LIGHT=" -e \E[1;34m"
+COLOR_GREEN=" -e \E[0;32m"
+COLOR_GREEN_LIGHT=" -e \E[1;32m"
+COLOR_CYAN=" -e \E[0;36m"
+COLOR_CYAN_LIGHT=" -e \E[1;36m"
+COLOR_RED=" -e \E[0;31m"
+COLOR_RED_LIGHT=" -e \E[1;31m"
+COLOR_PURPLE=" -e \E[0;35m"
+COLOR_PURPLE_LIGHT=" -e \E[1;35m"
+COLOR_BROWN=" -e \E[0;33m"
+COLOR_YELLOW=" -e \E[1;33m"
+COLOR_BLACK=" -e \E[0;30m"
+REPLACE=" -e \E[0m"
+
+####################
+# FUNZIONI GLOBALI #
+####################
+#
+# LEGGI RISPOSTA:
+# Questa funzione valuta la riposta dell'utente e ritorna y = yes, n = no, f = n/d
+##################################################################################
+function read_risp()
+{
+	read RISPOSTA
+	case "$RISPOSTA" in
+		""|YES|yes|Yes|y|Y)
+			echo "y"
+			;;
+		NO|no|No|n|N)
+			echo "n"
+			;;
+		*)
+			echo "f"
+			;;
+	esac
+}
+
+partition()
+{
+	parn=${path:8:2}
+	echo $((parn - 1))
+}
+
+device()
+{
+	hdn=${path:7:1}
+	
+	if [[ $hdn = "a" ]]
+	then 
+		echo "0"
+	elif [[ $hdn = "b" ]]
+	then 
+		echo "1"
+	elif [[ $hdn = "c" ]]
+	then 
+		echo "2"
+	elif [[ $hdn = "d" ]]
+	then
+		echo "3"
+	fi
+}
+
+function check_device()
+{
+	node2=${partizione:8:2}       #numero della partizione
+	if [[ $node2 -gt "7" ]]
+	then
+		node1=${partizione:7:1}       #device dell'hd
+		if [[ $node1 = "a" ]]
+		then
+               		node=$node2
+      		elif [[ $node1 = "b" ]]
+      		then
+         		node=$(( $node2 + 64 ))
+      		fi
+		#comando per la creazione del dispositivo
+		mknod -m 660 $partizione b 3 $node
+		chown root:disk $partizione 
+		echo "mknod -m 660 $partizione b 3 $node"
+		echo "chown root:disk $partizione" 
+	fi
+}
+
+function scelta()
+{
+	read SCELTA
+	case "$SCELTA" in
+	       1)
+	          echo "1"
+		  ;;
+	       2)
+	       	  echo "2"
+		  ;;
+	       3)
+	          echo "3"
+		  ;;
+	       "")
+	       	  echo "1"
+		  ;;
+		*)
+		  echo "5"
+		  ;;
+	esac
+}
+
+function fs_ext2()
+{
+	echo -e $ME
+	if  mkfs.ext2 -q $hdax                      # !!
+        then
+               	return $EXIT_SUCCESS
+	else
+		return $EXIT_FAILURE
+	fi
+        return 0
+}
+
+function fs_ext3()
+{
+	echo -e $ME3
+	if mke2fs -j $hdax                      # !!!
+	then
+		return $EXIT_SUCCESS
+        else
+		return $EXIT_FAILURE
+        fi
+        return 0
+}
+
+function fs_reiserfs()
+{
+	if mkreiserfs -q $hdax                  # !!!
+        then
+		return $EXIT_SUCCESS
+        else
+	       return $EXIT_FAILURE
+	fi
+	return 0
+}
+
+function deb()
+{
+	echo $M1T
+}
